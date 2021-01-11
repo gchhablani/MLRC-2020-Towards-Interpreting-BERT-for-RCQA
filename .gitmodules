@@ -1,0 +1,6 @@
+[submodule "data/SQuAD-explorer"]
+	path = data/SQuAD-explorer
+	url = https://github.com/rajpurkar/SQuAD-explorer
+[submodule "data/duorc"]
+	path = data/duorc
+	url = https://github.com/duorc/duorc.git
