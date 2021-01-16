@@ -163,7 +163,7 @@ else:
         {"id": k, "prediction_text": v} for k, v in final_predictions.items()
     ]
 references = [
-    {"id": ex["id"], "answers": ex["answers"]} for ex in training_datasets["validation"]
+    {"id": ex["id"], "answers": ex["answers"]} for ex in datasets.datasets["validation"]
 ]
 metrics = metric.compute(predictions=formatted_predictions, references=references)
 
