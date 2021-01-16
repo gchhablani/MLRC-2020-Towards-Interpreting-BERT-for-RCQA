@@ -58,7 +58,7 @@ class DuoRC:
         data_files = config.data_files
         dataset_dict = {}
         for key, file_path in data_files.items():
-            if key != "validation":
+            if key == "train":
                 dataset_dict[key] = Dataset.from_pandas(
                     self.convert_to_squad_format(file_path)
                 )
@@ -236,9 +236,7 @@ class DuoRC:
                     continue
 
                 ## Get the first answer that matches a span
-                start_index = (
-                    None  ## So you don't access any index if answer isn't there
-                )
+                start_index = []
                 text = []
                 if not dev:
                     if not no_answer:
@@ -250,6 +248,12 @@ class DuoRC:
                                 text = [answer]
                                 answer_index_found = True
                                 break
+
+                    if (
+                        not squad_v2 and not answer_index_found
+                    ):  # Skip if answer index is not found and  if squad_v1 style
+                        continue
+                ## Store all answers in Dev
                 else:
                     if not no_answer:
                         for answer in answers:
@@ -259,11 +263,10 @@ class DuoRC:
                                 start_index.append(index)
                                 text.append(answer)
                                 answer_index_found = True
-
-                if (
-                    not squad_v2 and not answer_index_found
-                ):  # Skip if answer index is not found and  if squad_v1 style
-                    continue
+                    else:
+                        answer_index_found = True
+                        start_index = []
+                        text = []
 
                 ## We only store answers when found if squad_v1, otherwise we store all
                 dataset.append(
