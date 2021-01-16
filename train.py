@@ -55,6 +55,7 @@ dataset_config = OmegaConf.load(args.dataset)
 seed(train_config.args.seed)
 
 # Load datasets
+print("### Loading Datasets ###")
 datasets = configmapper.get("datasets", dataset_config.dataset_name)(dataset_config)
 print(datasets.get_datasets())
 training_datasets, validation_dataset = datasets.get_datasets()
@@ -82,12 +83,12 @@ trainer = Trainer(
     training_datasets["validation"],
     tokenizer,
 )
-
+print("### Training ###")
 trainer.train()
 trainer.save_model(train_config.trainer.save_model_name)
 
 # Predict
-
+print("### Predicting ###")
 raw_predictions = trainer.predict(validation_dataset)  ## has predictions,label_ids,
 
 # Set back features hidden by trainer during prediction.
@@ -97,12 +98,14 @@ validation_dataset.set_format(
 )
 
 # Process the predictions
+print("### Processing Predictions ###")
 final_predictions = postprocess_qa_predictions(
     datasets["validation"], validation_dataset, raw_predictions.predictions, tokenizer
 )
 
 
 # Metric Calculation
+print("### Calculating Metrics ###")
 if train_config.misc.squad_v2:
     metric = load_metric("squad_v2")
 else:
@@ -122,5 +125,7 @@ references = [
 ]
 metrics = metric.compute(predictions=formatted_predictions, references=references)
 
+print("### Saving Metrics ###")
 with open(train_config.misc.metric_file, "w") as f:
     json.dump(metrics, f)
+print("### Finished ###")
