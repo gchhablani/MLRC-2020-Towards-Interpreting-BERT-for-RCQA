@@ -1,4 +1,5 @@
 """Init for the datasets package.
     Exports Squad and Duorc
 """
-from src.datasets.squad import Squad
+from src.datasets.squad import SQuAD
+from src.datasets.duorc import DuoRC

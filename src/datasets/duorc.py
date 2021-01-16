@@ -1,30 +1,34 @@
-"""Class to load and process SQuAD v1.1 Dataset.
+"""Class to load and process DuoRC SelfRCDataset.
 
-This module uses PyTorch's Dataset Library to create SQuAD dataset.
+This module uses PyTorch's Dataset Library to create SelfRC dataset in SQuAD style.
 Currently, we only use HuggingFace's BertTokenizer directly for tokenization,
 as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.
 
-When creating your own datasets using this format, the trainer expects
+When creating your own datasets using this format, the trainer script expects
 a DatasetDict to be returned from the customedataset class.
 
 References:
 https://github.com/huggingface/notebooks/blob/master/examples/question_answering.ipynb
 
-Note: The original bert squad code uses max_query_length and a max_sequence_length.
+Note: The original bert SQuAD code uses max_query_length and a max_sequence_length.
     Here, we only use max_sequence_length and only truncate the context, not the question.
 """
+import json
 
-from datasets import load_dataset
+from datasets import Dataset, DatasetDict
+import pandas as pd
+from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
+
 from src.utils.mapper import configmapper
 
 
-@configmapper.map("datasets", "squad")
-class SQuAD:
-    """Implement SQuAD dataset class.
+@configmapper.map("datasets", "duorc")
+class DuoRC:
+    """Implement DuoRC dataset class.
 
-    This dataset class implements SQuAD, including the tokenization
+    This dataset class implements DuoRC, including the tokenization
     and the final output dictionary making the data ready for any
     AutoModelForQuestionAnswering model.
 
@@ -39,11 +43,10 @@ class SQuAD:
         tokenized_validation_dataset (datasets.arrow_dataset.Dataset):
             The tokenized and processed validation dataset for prediction.
 
-
     """
 
     def __init__(self, config):
-        """Initialize the SQuAD class.
+        """Initialize the DuoRC class.
 
         Args:
             config (omegaconf.dictconfig.DictConfig): Configuration for the dataset.
@@ -52,8 +55,14 @@ class SQuAD:
             AssertionError: If the tokenizer in config.model_checkpoint does not
                             belong to the PreTrainedTokenizerFast.
         """
+        data_files = config.data_files
+        dataset_dict = {}
+        for key, file_path in data_files.items():
+            dataset_dict[key] = Dataset.from_pandas(
+                self.convert_to_squad_format(file_path)
+            )
         self.config = config
-        self.datasets = load_dataset(config.dataset_name)
+        self.datasets = DatasetDict(dataset_dict)
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_checkpoint)
         # Tokenizer should be of type PreTrainedTokenizerFast
         # Need it for offset_mapping and overflow_tokens later
@@ -184,6 +193,78 @@ class SQuAD:
 
         return tokenized_examples
 
+    def convert_to_squad_format(self, json_file_path, squad_v2=False):
+        """Convert a JSON file for DuoRC to SQuAD format examples.
+
+        Args:
+            json_file_path (str): Path of the JSON file
+            squad_v2 (bool, optional): Whether or not to include no answer examples. If set to True,
+                stores the no answer examples. Defaults to False.
+
+        Returns:
+            pandas.DataFrame: DataFrame containing all examples across all questions and plots.
+        """
+        print(
+            "### Converting Dataset to {} Format ###".format(
+                "SQuAD v1.1" if not squad_v2 else "SQuAD v2.0"
+            )
+        )
+        with open(json_file_path) as f:
+            json_file = json.load(f)
+
+        dataset = []
+        for plot_dict in tqdm(json_file):
+            plot = plot_dict["plot"]
+            title = plot_dict["title"]
+            qas = plot_dict["qa"]
+            idx = plot_dict["id"]
+            for qa in qas:
+                qa_idx = qa["id"]
+                question = qa["question"]
+                no_answer = qa["no_answer"]
+                answers = qa["answers"]
+                answer_index_found = False
+
+                if not squad_v2 and no_answer:
+                    continue
+
+                ## Get the first answer that matches a span
+                start_index = (
+                    None  ## So you don't access any index if answer isn't there
+                )
+                text = []
+                if not no_answer:
+                    for answer in answers:
+                        ## Get the first answer found
+                        index = plot.find(answer)
+                        if index != -1:
+                            start_index = [index]
+                            text = [answer]
+                            answer_index_found = True
+                            break
+
+                if (
+                    not squad_v2 and not answer_index_found
+                ):  # Skip if answer index is not found and  if squad_v1 style
+                    continue
+
+                ## We only store answers when found if squad_v1, otherwise we store all
+                dataset.append(
+                    {
+                        "id": qa_idx,
+                        "plot_id": idx,
+                        "title": title,
+                        "context": plot,
+                        "question": question,
+                        "answers": {
+                            "answer_start": start_index,
+                            "text": text,
+                        },
+                    }
+                )
+
+        return pd.DataFrame(dataset)
+
     def prepare_validation_features(self, examples):
 
         """Generate tokenized validation features from examples.
@@ -248,6 +329,6 @@ class SQuAD:
         Returns:
             datasets.dataset_dict.DatasetDict, datasets.arrow_dataset.Dataset :
                 The DatasetDict containing processed train and validation,
-                The Dataset for validation prediction
+                The Dataset for validation prediction.
         """
         return self.tokenized_datasets, self.tokenized_validation_dataset
