@@ -11,10 +11,12 @@ Usage:
 import os
 import argparse
 import json
+import pickle as pkl
 
 from datasets import load_metric
 from omegaconf import OmegaConf
 
+import torch
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
@@ -48,6 +50,18 @@ parser.add_argument(
     default=os.path.join(dirname, "./configs/train/default.yaml"),
 )
 
+parser.add_argument(
+    "--only_predict",
+    action="store_true",
+    help="Whether to just predict, or also train",
+    default=False,
+)
+parser.add_argument(
+    "--only_metric",
+    action="store_true",
+    help="Whether to just predict, or also train",
+    default=False,
+)
 args = parser.parse_args()
 train_config = OmegaConf.load(args.train)
 dataset_config = OmegaConf.load(args.dataset)
@@ -63,16 +77,33 @@ training_datasets, validation_dataset = datasets.get_datasets()
 
 # Train
 
-train_args = TrainingArguments(**train_config.args)
-print("### Loading Model for Trainer ###")
-tokenizer = AutoTokenizer.from_pretrained(
-    train_config.trainer.pretrained_tokenizer_name
-)
-
-print("### Loading Model ###")
-model = AutoModelForQuestionAnswering.from_pretrained(
-    train_config.model.pretrained_model_name
-)
+if not args.only_predict:
+    print("### Getting Training Args ###")
+    train_args = TrainingArguments(**train_config.args)
+else:
+    print("### Getting Training Args from PreTrained###")
+    train_args = torch.load(
+        os.path.join(train_config.trainer.save_model_name, "training_args.bin")
+    )
+    print(train_args)
+if not args.only_predict:
+    print("### Loading Tokenizer for Trainer ###")
+    tokenizer = AutoTokenizer.from_pretrained(
+        train_config.trainer.pretrained_tokenizer_name
+    )
+else:
+    print("### Loading Tokenizer for Trainer from PreTrained ")
+    tokenizer = AutoTokenizer.from_pretrained(train_config.trainer.save_model_name)
+if not args.only_predict:
+    print("### Loading Model ###")
+    model = AutoModelForQuestionAnswering.from_pretrained(
+        train_config.model.pretrained_model_name
+    )
+else:
+    print("### Loading Model From PreTrained ###")
+    model = AutoModelForQuestionAnswering.from_pretrained(
+        train_config.trainer.save_model_name
+    )
 
 print("### Loading Trainer ###")
 trainer = Trainer(
@@ -83,26 +114,37 @@ trainer = Trainer(
     training_datasets["validation"],
     tokenizer,
 )
-print("### Training ###")
-trainer.train()
-trainer.save_model(train_config.trainer.save_model_name)
+if not args.only_predict:
+    print("### Training ###")
+    trainer.train()
+    trainer.save_model(train_config.trainer.save_model_name)
 
 # Predict
-print("### Predicting ###")
-raw_predictions = trainer.predict(validation_dataset)  ## has predictions,label_ids,
+if not args.only_metric:
+    print("### Predicting ###")
+    raw_predictions = trainer.predict(validation_dataset)  ## has predictions,label_ids,
+    with open(train_config.misc.raw_predictions_file, "wb") as f:
+        pkl.dump(raw_predictions, f)
+else:
+    print("### Loading Predictions ###")
+    with open(train_config.misc.raw_predictions_file, "rb") as f:
+        raw_predictions = pkl.load(f)
 
 # Set back features hidden by trainer during prediction.
 validation_dataset.set_format(
     type=validation_dataset.format["type"],
     columns=list(validation_dataset.features.keys()),
 )
+print(validation_dataset)
 
 # Process the predictions
 print("### Processing Predictions ###")
 final_predictions = postprocess_qa_predictions(
-    datasets["validation"], validation_dataset, raw_predictions.predictions, tokenizer
+    datasets.datasets["validation"],
+    validation_dataset,
+    raw_predictions.predictions,
+    tokenizer,
 )
-
 
 # Metric Calculation
 print("### Calculating Metrics ###")
@@ -121,7 +163,7 @@ else:
         {"id": k, "prediction_text": v} for k, v in final_predictions.items()
     ]
 references = [
-    {"id": ex["id"], "answers": ex["answers"]} for ex in datasets["validation"]
+    {"id": ex["id"], "answers": ex["answers"]} for ex in training_datasets["validation"]
 ]
 metrics = metric.compute(predictions=formatted_predictions, references=references)
 

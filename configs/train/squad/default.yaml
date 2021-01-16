@@ -19,7 +19,8 @@ args:
   dataloader_num_workers: 4
 trainer:
   pretrained_tokenizer_name: "bert-base-uncased"
-  save_model_name: "squad-bert-base-uncased"
+  save_model_name: "squad-bert-base-uncased-model"
 misc:
   squad_v2: False
+  raw_predictions_file: "raw"
   metric_file: "squad.json"
