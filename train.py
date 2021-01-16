@@ -57,9 +57,9 @@ parser.add_argument(
     default=False,
 )
 parser.add_argument(
-    "--only_metric",
+    "--load_predictions",
     action="store_true",
-    help="Whether to just store metric while predicting, or predict from scratch",
+    help="Whether to load_predictions from raw_predictions_file or predict from scratch",
     default=False,
 )
 args = parser.parse_args()
@@ -120,7 +120,7 @@ if not args.only_predict:
     trainer.save_model(train_config.trainer.save_model_name)
 
 # Predict
-if not args.only_metric:
+if not args.load_predictions:
     print("### Predicting ###")
     raw_predictions = trainer.predict(validation_dataset)  ## has predictions,label_ids,
     with open(train_config.misc.raw_predictions_file, "wb") as f:
