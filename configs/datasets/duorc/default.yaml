@@ -1,0 +1,11 @@
+main: &main
+  data_dir: ../data/duorc/dataset
+  truncate_length: !!int 512 
+  ## Max sequence length for pretrained BERT 
+  ## can be  512
+train: 
+  <<: *main
+  file_path: {{data_dir}}/SelfRC_train.json
+dev:
+  <<: *main
+  file_path: {{data_dir}}/SelfRC_dev.json
