@@ -59,7 +59,7 @@ parser.add_argument(
 parser.add_argument(
     "--only_metric",
     action="store_true",
-    help="Whether to just predict, or also train",
+    help="Whether to just store metric while predicting, or predict from scratch",
     default=False,
 )
 args = parser.parse_args()
