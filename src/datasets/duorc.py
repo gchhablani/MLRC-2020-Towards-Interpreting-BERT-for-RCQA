@@ -58,9 +58,15 @@ class DuoRC:
         data_files = config.data_files
         dataset_dict = {}
         for key, file_path in data_files.items():
-            dataset_dict[key] = Dataset.from_pandas(
-                self.convert_to_squad_format(file_path)
-            )
+            if key != "validation":
+                dataset_dict[key] = Dataset.from_pandas(
+                    self.convert_to_squad_format(file_path)
+                )
+            else:
+                dataset_dict[key] = Dataset.from_pandas(
+                    self.convert_to_squad_format(file_path, dev=True)
+                )
+
         self.config = config
         self.datasets = DatasetDict(dataset_dict)
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_checkpoint)
@@ -193,13 +199,14 @@ class DuoRC:
 
         return tokenized_examples
 
-    def convert_to_squad_format(self, json_file_path, squad_v2=False):
+    def convert_to_squad_format(self, json_file_path, squad_v2=False, dev=False):
         """Convert a JSON file for DuoRC to SQuAD format examples.
 
         Args:
             json_file_path (str): Path of the JSON file
             squad_v2 (bool, optional): Whether or not to include no answer examples. If set to True,
                 stores the no answer examples. Defaults to False.
+            dev (bool, optional): Whether the set is dev set. In that case, multiple answer examples are included.
 
         Returns:
             pandas.DataFrame: DataFrame containing all examples across all questions and plots.
@@ -233,15 +240,25 @@ class DuoRC:
                     None  ## So you don't access any index if answer isn't there
                 )
                 text = []
-                if not no_answer:
-                    for answer in answers:
-                        ## Get the first answer found
-                        index = plot.find(answer)
-                        if index != -1:
-                            start_index = [index]
-                            text = [answer]
-                            answer_index_found = True
-                            break
+                if not dev:
+                    if not no_answer:
+                        for answer in answers:
+                            ## Get the first answer found
+                            index = plot.find(answer)
+                            if index != -1:
+                                start_index = [index]
+                                text = [answer]
+                                answer_index_found = True
+                                break
+                else:
+                    if not no_answer:
+                        for answer in answers:
+                            ## Get the all the answers found
+                            index = plot.find(answer)
+                            if index != -1:
+                                start_index.append(index)
+                                text.append(answer)
+                                answer_index_found = True
 
                 if (
                     not squad_v2 and not answer_index_found
