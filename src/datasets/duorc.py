@@ -233,9 +233,8 @@ class DuoRC:
                 answer_index_found = False
 
                 if (
-                    not squad_v2 and no_answer and not dev
-                ):  ## If Train, and  there is no answer
-                    ## And, training type is not SQuAD v2.
+                    not squad_v2 and no_answer
+                ):  ## If SQuAD v1.1 style, and  there is no answer.
                     continue
 
                 ## Get the first answer that matches a span
@@ -252,11 +251,7 @@ class DuoRC:
                                 answer_index_found = True
                                 break
 
-                    if (
-                        not squad_v2 and not answer_index_found
-                    ):  # Skip if answer index is not found and  if squad_v1 style
-                        continue
-                ## Store all answers in Dev
+                ## Store all found answers in Dev
                 else:
                     if not no_answer:
                         for answer in answers:
@@ -266,12 +261,11 @@ class DuoRC:
                                 start_index.append(index)
                                 text.append(answer)
                                 answer_index_found = True
-                    else:
-                        answer_index_found = True
-                        start_index = []
-                        text = []
-
-                ## We only store answers when found if squad_v1, otherwise we store all
+                if (
+                    not squad_v2 and not answer_index_found
+                ):  # Skip if answer index is not found and  if squad_v1 style
+                    continue
+                ## We only store multiple answers when found if squad_v1, otherwise we store no answers
                 dataset.append(
                     {
                         "id": qa_idx,
