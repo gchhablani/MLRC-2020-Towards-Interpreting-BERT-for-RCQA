@@ -204,7 +204,7 @@ class DuoRC:
 
         Args:
             json_file_path (str): Path of the JSON file
-            squad_v2 (bool, optional): Whether or not to include no answer examples. If set to True,
+            squad_v2 (bool, optional): Whether or not to include no answer examples in train set. If set to True,
                 stores the no answer examples. Defaults to False.
             dev (bool, optional): Whether the set is dev set. In that case, multiple answer examples are included.
 
@@ -232,7 +232,10 @@ class DuoRC:
                 answers = qa["answers"]
                 answer_index_found = False
 
-                if not squad_v2 and no_answer:
+                if (
+                    not squad_v2 and no_answer and not dev
+                ):  ## If Train, and  there is no answer
+                    ## And, training type is not SQuAD v2.
                     continue
 
                 ## Get the first answer that matches a span
