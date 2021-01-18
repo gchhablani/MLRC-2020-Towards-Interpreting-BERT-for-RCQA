@@ -119,7 +119,9 @@ class DuoRC:
         pad_on_right = self.tokenizer.padding_side == "right"
         print("### Batch Tokenizing Examples ###")
         tokenized_examples = self.tokenizer(
-            examples["question" if pad_on_right else "context"],
+            examples[
+                "question" if pad_on_right else "context"
+            ],  ## We don't use max_query_length
             examples["context" if pad_on_right else "question"],
             truncation="only_second" if pad_on_right else "only_first",
             max_length=self.config.max_length,
@@ -232,19 +234,22 @@ class DuoRC:
                 answers = qa["answers"]
                 answer_index_found = False
 
-                if (
-                    not squad_v2 and no_answer
-                ):  ## If SQuAD v1.1 style, and  there is no answer.
-                    continue
+                # if (
+                #     not squad_v2 and no_answer and not dev
+                # ):  ## If SQuAD v1.1 style, and  there is no answer. ## Original Bert keeps and maps to cls
+                #     continue
 
                 ## Get the first answer that matches a span
                 start_index = []
                 text = []
                 if not dev:
                     if not no_answer:
-                        for answer in answers:
+                        for answer in answers:  ## If multiple, get first.
                             ## Get the first answer found
-                            index = plot.find(answer)
+                            index = plot.find(
+                                answer
+                            )  ## Original BERT uses start and end, and finds the text
+                            ## based on actual vs original
                             if index != -1:
                                 start_index = [index]
                                 text = [answer]
@@ -262,8 +267,11 @@ class DuoRC:
                                 text.append(answer)
                                 answer_index_found = True
                 if (
-                    not squad_v2 and not answer_index_found
-                ):  # Skip if answer index is not found and  if squad_v1 style
+                    not squad_v2
+                    and not answer_index_found
+                    and not no_answer
+                    and not dev
+                ):  # This is the only case where we drop examples
                     continue
                 ## We only store multiple answers when found if squad_v1, otherwise we store no answers
                 dataset.append(
