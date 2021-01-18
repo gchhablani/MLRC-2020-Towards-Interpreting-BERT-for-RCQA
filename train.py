@@ -153,7 +153,7 @@ if train_config.misc.squad_v2:
 else:
     metric = load_metric("squad")
 
-if train_config.squad_v2:
+if train_config.misc.squad_v2:
     formatted_predictions = [
         {"id": k, "prediction_text": v, "no_answer_probability": 0.0}
         for k, v in final_predictions.items()
