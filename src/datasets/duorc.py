@@ -267,8 +267,8 @@ class DuoRC:
                                 text.append(answer)
                                 answer_index_found = True
                 if (
-                    not squad_v2
-                    and not answer_index_found
+                    # not squad_v2
+                    not answer_index_found
                     and not no_answer
                     and not dev
                 ):  # This is the only case where we drop examples

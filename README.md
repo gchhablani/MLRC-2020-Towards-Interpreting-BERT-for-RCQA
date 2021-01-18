@@ -21,4 +21,4 @@ Example - 'Train S2' means that the dataset is Train and the format chosen for p
 | No Answer                           | Keep as empty | Keep as empty | Keep as empty | Keep as empty |
 | Single Answer                       | Keep          | Keep          | Keep          | Keep          |
 | Multiple Answers                    | Keep First    | Keep First    | Keep All      | Keep All      |
-| Answer exists but not found in plot | Drop          | Keep          | Keep          | Keep          |
+| Answer exists but not found in plot | Drop          | Drop          | Keep          | Keep          |
