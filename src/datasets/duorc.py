@@ -234,15 +234,15 @@ class DuoRC:
                 answers = qa["answers"]
                 answer_index_found = False
 
-                # if (
-                #     not squad_v2 and no_answer and not dev
-                # ):  ## If SQuAD v1.1 style, and  there is no answer. ## Original Bert keeps and maps to cls
-                #     continue
+                if (
+                    not squad_v2 and no_answer
+                ):  ## If SQuAD v1.1 style, and  there is no answer. ## Original Bert keeps and maps to cls
+                    continue
 
-                ## Get the first answer that matches a span
                 start_index = []
                 text = []
                 if not dev:
+                    ## Get the first answer that matches a span
                     if not no_answer:
                         for answer in answers:  ## If multiple, get first.
                             ## Get the first answer found
@@ -266,14 +266,10 @@ class DuoRC:
                                 start_index.append(index)
                                 text.append(answer)
                                 answer_index_found = True
-                if (
-                    # not squad_v2
-                    not answer_index_found
-                    and not no_answer
-                    and not dev
-                ):  # This is the only case where we drop examples
+
+                if not squad_v2 and not answer_index_found and not no_answer:
                     continue
-                ## We only store multiple answers when found if squad_v1, otherwise we store no answers
+
                 dataset.append(
                     {
                         "id": qa_idx,
