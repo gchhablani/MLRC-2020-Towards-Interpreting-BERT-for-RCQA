@@ -21,6 +21,6 @@ trainer:
   pretrained_tokenizer_name: bert-base-uncased
   save_model_name: squad-bert-base-uncased-model
 misc:
-  squad_v2: False
+  squad_v2: false
   raw_predictions_file: squad_raw
   metric_file: squad.json
