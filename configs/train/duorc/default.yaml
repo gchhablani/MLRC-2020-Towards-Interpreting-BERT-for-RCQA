@@ -2,7 +2,8 @@
 model:
   pretrained_model_name: bert-base-uncased
 args:
-  output_dir: duorc-bert-base-uncased
+  output_dir: "/content/drive/My Drive/MLR/duorc/ckpts/duorc-bert-base-uncased"
+  logging_dir: "/content/drive/My Drive/MLR/duorc/ckpts/runs/"
   evaluation_strategy: epoch
   per_device_train_batch_size: 6
   per_device_eval_batch_size: 8
@@ -19,8 +20,8 @@ args:
   dataloader_num_workers: 4
 trainer:
   pretrained_tokenizer_name: bert-base-uncased
-  save_model_name: duorc-bert-base-uncased-model
+  save_model_name: "/content/drive/My Drive/MLR/duorc/model/duorc-bert-base-uncased-model"
 misc:
   squad_v2: False
-  raw_predictions_file: duorc_raw
-  metric_file: duorc.json
+  raw_predictions_file: "/content/drive/My Drive/MLR/duorc/preds/duorc_raw"
+  metric_file: "/content/drive/My Drive/MLR/duorc/preds/duorc.json"
