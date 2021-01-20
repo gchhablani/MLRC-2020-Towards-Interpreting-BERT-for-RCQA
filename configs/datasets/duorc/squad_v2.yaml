@@ -1,0 +1,8 @@
+dataset_name: duorc #The dataset to be loaded from datasets
+model_checkpoint: bert-base-uncased #Pretrained Tokenizer Name
+max_length: 384 #Max Sequence Length
+doc_stride: 128 #Document Stride
+squad_v2: true #Whether to include no answer examples
+data_files:
+  train: ./data/duorc/dataset/SelfRC_train.json # DO NOT CHANGE KEY
+  validation: ./data/duorc/dataset/SelfRC_dev.json # DO NOT CHANGE KEY

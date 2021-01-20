@@ -2,8 +2,8 @@
 model:
   pretrained_model_name: bert-base-uncased
 args:
-  output_dir: "/content/drive/My Drive/MLR/v1_style/squad/ckpts/squad-bert-base-uncased"
-  logging_dir: "/content/drive/My Drive/MLR/v1_style/squad/runs/"
+  output_dir: "/content/drive/My Drive/MLR/v2_style/squad/ckpts/squad-bert-base-uncased"
+  logging_dir: "/content/drive/My Drive/MLR/v2_style/squad/runs/"
   evaluation_strategy: epoch
   per_device_train_batch_size: 6
   per_device_eval_batch_size: 8
@@ -20,8 +20,8 @@ args:
   dataloader_num_workers: 4
 trainer:
   pretrained_tokenizer_name: bert-base-uncased
-  save_model_name: "/content/drive/My Drive/MLR/v1_style/squad/model/squad-bert-base-uncased-model"
+  save_model_name: "/content/drive/My Drive/MLR/v2_style/squad/model/squad-bert-base-uncased-model"
 misc:
-  squad_v2: false
-  raw_predictions_file: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad_raw"
-  metric_file: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad.json"
+  squad_v2: true
+  raw_predictions_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad_raw"
+  metric_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad.json"
