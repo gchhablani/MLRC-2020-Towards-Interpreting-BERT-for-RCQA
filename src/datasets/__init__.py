@@ -3,3 +3,4 @@
 """
 from src.datasets.squad import SQuAD
 from src.datasets.duorc import DuoRC
+from src.datasets.duorc import DuoRCModified
