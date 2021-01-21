@@ -144,6 +144,7 @@ final_predictions = postprocess_qa_predictions(
     validation_dataset,
     raw_predictions.predictions,
     tokenizer,
+    squad_v2=train_config.misc.squad_v2,
 )
 
 # Metric Calculation
