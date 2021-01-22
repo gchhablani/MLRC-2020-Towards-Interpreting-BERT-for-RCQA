@@ -64,11 +64,11 @@ print("### Running IG ###")
 )
 
 print("### Saving the Scores ###")
-with open(os.path.join(ig_config.store_dir, "samples"), "rb") as out_file:
+with open(os.path.join(ig_config.store_dir, "samples"), "wb") as out_file:
     pkl.dump(samples, out_file)
-with open(os.path.join(ig_config.store_dir, "token_importances"), "rb") as out_file:
+with open(os.path.join(ig_config.store_dir, "token_importances"), "wb") as out_file:
     pkl.dump(token_importances, out_file)
-with open(os.path.join(ig_config.store_dir, "word_importances"), "rb") as out_file:
+with open(os.path.join(ig_config.store_dir, "word_importances"), "wb") as out_file:
     pkl.dump(word_importances, out_file)
 
 print("### Finished ###")
