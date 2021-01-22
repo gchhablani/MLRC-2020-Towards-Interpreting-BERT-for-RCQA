@@ -6,10 +6,10 @@ as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.
 
 When creating your own datasets using this format, the trainer script expects
-a DatasetDict to be returned from the customedataset class.
+a DatasetDict to be returned from the custom dataset class.
 
 References:
-https://github.com/huggingface/notebooks/blob/master/examples/question_answering.ipynb
+`<https://github.com/huggingface/notebooks/blob/master/examples/question_answering.ipynb>`_
 
 Note: The original bert SQuAD code uses max_query_length and a max_sequence_length.
     Here, we only use max_sequence_length and only truncate the context, not the question.
@@ -206,9 +206,11 @@ class DuoRC:
 
         Args:
             json_file_path (str): Path of the JSON file
-            squad_v2 (bool, optional): Whether or not to include no answer examples in train set. If set to True,
-                stores the no answer examples. Defaults to False.
-            dev (bool, optional): Whether the set is dev set. In that case, multiple answer examples are included.
+            squad_v2 (bool, optional): Whether or not to include no answer examples in train set.
+                If set to True, stores the no answer examples.
+                Defaults to False.
+            dev (bool, optional): Whether the set is dev set.
+                In that case, multiple answer examples are included.
 
         Returns:
             pandas.DataFrame: DataFrame containing all examples across all questions and plots.
@@ -236,7 +238,8 @@ class DuoRC:
 
                 if (
                     not squad_v2 and no_answer
-                ):  ## If SQuAD v1.1 style, and  there is no answer. ## Original Bert keeps and maps to cls
+                ):  ## If SQuAD v1.1 style, and  there is no answer.
+                    ## Original Bert keeps and maps to cls
                     continue
 
                 start_index = []

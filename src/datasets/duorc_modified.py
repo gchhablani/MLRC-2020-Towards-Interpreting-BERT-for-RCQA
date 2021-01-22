@@ -206,9 +206,10 @@ class DuoRCModified:
 
         Args:
             json_file_path (str): Path of the JSON file
-            squad_v2 (bool, optional): Whether or not to include no answer examples in train set. If set to True,
-                stores the no answer examples. Defaults to False.
-            dev (bool, optional): Whether the set is dev set. In that case, multiple answer examples are included.
+            squad_v2 (bool, optional): Whether to include no answer found examples in train set.
+                If set to True, stores them. Defaults to False.
+            dev (bool, optional): Whether the set is dev set.
+                In that case, multiple answer examples are included.
 
         Returns:
             pandas.DataFrame: DataFrame containing all examples across all questions and plots.

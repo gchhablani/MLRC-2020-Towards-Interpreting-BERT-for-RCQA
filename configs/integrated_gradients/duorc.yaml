@@ -1,0 +1,8 @@
+# Config for Integrated Gradients for DuoRC
+model_checkpoint: "/contet/drive/My Drive/MLR/v1_style/duorc_modified/model/"
+device: cuda
+n_steps: 25
+method: "riemann_right"
+internal_batch_size: 4
+n_samples: 1000
+store_dir: "/content/drive/My Drive/MLR/v1_style/duorc_modified/IG/"

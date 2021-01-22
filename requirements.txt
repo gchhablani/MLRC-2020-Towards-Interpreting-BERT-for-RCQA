@@ -1,3 +1,5 @@
 omegaconf
 datasets
 transformers
+pyarrow
+captum
