@@ -7,13 +7,13 @@ def _get_color(attr):
     # clip values to prevent CSS errors (Values should be from [-1,1])
     attr = max(-1, min(1, attr))
     if attr > 0:
-        hue = 200
+        hue = 210
         sat = 75
-        lig = 100 - int(200 * attr)
+        lig = 100 - int(90 * attr)
     else:
-        hue = 200
+        hue = 210
         sat = 75
-        lig = 100 - int(-200 * attr)
+        lig = 100 - int(-90 * attr)
     return "hsl({}, {}%, {}%)".format(hue, sat, lig)
 
 
@@ -27,7 +27,7 @@ def format_word_importances(words, importances):
     if importances is None or len(importances) == 0:
         return ""
     assert len(words) <= len(importances)
-    tags = ["<div style='width:50%;'>"]
+    tags = ["<div>"]
     for word, importance in zip(words, importances[: len(words)]):
         word = format_special_tokens(word)
         color = _get_color(importance)
@@ -60,6 +60,6 @@ def display_html(html):
     display(html)
 
 
-def save_to_file(path):
+def save_to_file(html, path):
     with open(path, "w") as f:
         f.write(html.data)

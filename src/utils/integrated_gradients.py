@@ -391,8 +391,12 @@ class BertIntegratedGradients:
                 continue
 
             if token.startswith("##"):
-                if tokens[i - 1] == "[SEP]":
-                    word_wise_importances.append(per_example_token_wise_importances[i])
+                if (
+                    tokens[i - 1] == "[SEP]"
+                ):  # Tokens can be broked due to stride after the [SEP]
+                    word_wise_importances.append(
+                        per_example_token_wise_importances[i]
+                    )  # We just make new entries for them
                     word_wise_offsets.append(offset_mapping[i])
                     if is_context:
                         words.append(

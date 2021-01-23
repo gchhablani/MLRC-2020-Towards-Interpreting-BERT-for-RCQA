@@ -5,7 +5,8 @@ This script uses datasets, omegaconf and transformers libraries.
 Please install them in order to run this script.
 
 Usage:
-    $python train.py --train ./configs/train/quad/default.yaml --dataset ./configs/datasets/squad/default.yaml
+    $python train.py --train ./configs/train/quad/default.yaml \
+        --dataset ./configs/datasets/squad/default.yaml
 
 """
 import os
