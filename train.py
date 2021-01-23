@@ -25,7 +25,7 @@ from transformers import (
     Trainer,
 )
 
-from postprocess import postprocess_qa_predictions
+from src.utils.postprocess import postprocess_qa_predictions
 from src.datasets import SQuAD, DuoRC, DuoRCModified
 from src.utils.mapper import configmapper
 from src.utils.misc import seed
