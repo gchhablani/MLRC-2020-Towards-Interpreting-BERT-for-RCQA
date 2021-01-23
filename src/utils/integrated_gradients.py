@@ -7,6 +7,9 @@ question, context pair from a dataset in (src.datasets).
 References:
 `<https://captum.ai/docs/extension/integrated_gradients>`_
 
+Note: We intend to switch to layer-wise Integrated Gradients later: 
+    `<https://captum.ai/tutorials/Bert_SQUAD_Interpret>`
+
 """
 
 
@@ -423,6 +426,10 @@ class BertIntegratedGradients:
                         question[word_wise_offsets[-1][0] : word_wise_offsets[-1][1]]
                     )
                     word_wise_category.append("question")
+
+        if np.sum(word_wise_importances) == 0:
+            print(words)
+            print(tokens)
         return (
             words,
             word_wise_importances / np.sum(word_wise_importances),
