@@ -427,7 +427,12 @@ class BertIntegratedGradients:
                     )
                     word_wise_category.append("question")
 
-        if np.sum(word_wise_importances) == 0:
+        if (
+            np.sum(word_wise_importances) == 0
+            or np.sum(word_wise_importances) == np.nan
+            or np.sum(word_wise_importances) == np.inf
+        ):
+            print(np.sum(word_wise_importances))
             print(words)
             print(tokens)
         return (
