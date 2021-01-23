@@ -242,7 +242,8 @@ class BertIntegratedGradients:
             hidden_states.shape,
             torch.device(torch.device(self.config.device)),
         )
-        if layer_idx >= 0 and layer_idx < len(self.model.bert.encoder.layer):
+        if layer_idx >= 0 and layer_idx <= len(self.model.bert.encoder.layer):
+
             layer_input = hidden_states
             i = layer_idx
             while i < len(self.model.bert.encoder.layer):
@@ -257,7 +258,7 @@ class BertIntegratedGradients:
             return pred.reshape(-1, hidden_states.size(-2))
 
         else:
-            raise ValueError("Wrong layer_idx provided. Must be in range [0,11].")
+            raise ValueError("Wrong layer_idx provided. Must be in range [0,12].")
 
     def get_token_wise_attributions_per_layer(
         self,
