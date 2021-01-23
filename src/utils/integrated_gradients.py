@@ -54,7 +54,7 @@ class BertIntegratedGradients:
 
     """
 
-    def __init__(self, config, dataset, model_checkpoint):
+    def __init__(self, config, dataset):
         """Initialize the BertIntegratedGradients class.
 
         Args:
@@ -382,6 +382,8 @@ class BertIntegratedGradients:
                 continue
             if token == "[CLS]":
                 is_context = False
+                continue
+
             if token == "[PAD]":
                 continue
 
@@ -462,8 +464,10 @@ class BertIntegratedGradients:
                 batch
             )
 
-            # start_positions = batch["start_positions"] # The authors take max softmax output as target
-            # end_positions = batch["end_positions"] # The authors take max softmax output as target
+            # start_positions = batch["start_positions"]
+            # The authors take max softmax output as target
+            # end_positions = batch["end_positions"]
+            # The authors take max softmax output as target
 
             max_start_logits = torch.argmax(start_logits, dim=1)  # tensor of shape(1)
             max_end_logits = torch.argmax(end_logits, dim=1)  # tensor of shape(1)
@@ -480,7 +484,7 @@ class BertIntegratedGradients:
                         attention_mask,
                         max_start_logits,
                         max_end_logits,
-                        layer_idx,  ## 12, batch_size, seq_length, hidden_size
+                        layer_idx,  ## 13, batch_size, seq_length, hidden_size
                     )
                 )
 

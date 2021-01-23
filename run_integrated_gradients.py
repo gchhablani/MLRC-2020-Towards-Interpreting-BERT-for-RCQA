@@ -1,11 +1,12 @@
 """
-The train and predict script.
+Script to run integrated gradients on SQuAD or DuoRC
 
-This script uses datasets, omegaconf and transformers libraries.
+This script uses datasets, captum, omegaconf and transformers libraries.
 Please install them in order to run this script.
 
 Usage:
-    $python train.py --train ./configs/train/quad/default.yaml --dataset ./configs/datasets/squad/default.yaml
+    $python run_integrated_gradients.py --config ./configs/integrated_gradients/squad.yaml \
+        --dataset ./configs/datasets/squad/default.yaml
 
 """
 import os
@@ -52,7 +53,7 @@ print("### Loading Dataset ###")
 dataset = configmapper.get("datasets", dataset_config.dataset_name)(dataset_config)
 
 # Initialize BertIntegratedGradients
-big = BertIntegratedGradients(ig_config, dataset, ig_config.model_checkpoint)
+big = BertIntegratedGradients(ig_config, dataset)
 
 print("### Running IG ###")
 (
