@@ -391,19 +391,44 @@ class BertIntegratedGradients:
                 continue
 
             if token.startswith("##"):
-                word_wise_importances[-1] += per_example_token_wise_importances[i]
-                word_wise_offsets[-1] = (
-                    word_wise_offsets[-1][0],
-                    offset_mapping[i][1],
-                )  ## Expand the offsets
-                if is_context:
-                    words[-1] = context[
-                        word_wise_offsets[-1][0] : word_wise_offsets[-1][1]
-                    ]
+                if tokens[i - 1] == "[SEP]":
+                    word_wise_importances.append(per_example_token_wise_importances[i])
+                    word_wise_offsets.append(offset_mapping[i])
+                    if is_context:
+                        words.append(
+                            context[word_wise_offsets[-1][0] : word_wise_offsets[-1][1]]
+                        )
+                        if (
+                            per_example_start_position is not None
+                            and per_example_end_position is not None
+                            and i >= per_example_start_position
+                            and i <= per_example_end_position
+                        ):
+                            word_wise_category.append("answer")
+                        else:
+                            word_wise_category.append("context")
+                    else:
+                        words.append(
+                            question[
+                                word_wise_offsets[-1][0] : word_wise_offsets[-1][1]
+                            ]
+                        )
+                        word_wise_category.append("question")
+
                 else:
-                    words[-1] = question[
-                        word_wise_offsets[-1][0] : word_wise_offsets[-1][1]
-                    ]
+                    word_wise_importances[-1] += per_example_token_wise_importances[i]
+                    word_wise_offsets[-1] = (
+                        word_wise_offsets[-1][0],
+                        offset_mapping[i][1],
+                    )  ## Expand the offsets
+                    if is_context:
+                        words[-1] = context[
+                            word_wise_offsets[-1][0] : word_wise_offsets[-1][1]
+                        ]
+                    else:
+                        words[-1] = question[
+                            word_wise_offsets[-1][0] : word_wise_offsets[-1][1]
+                        ]
 
             else:
                 word_wise_importances.append(per_example_token_wise_importances[i])
@@ -481,8 +506,12 @@ class BertIntegratedGradients:
             # end_positions = batch["end_positions"]
             # The authors take max softmax output as target
 
-            max_start_logits = torch.argmax(start_logits, dim=1)  # tensor of shape(1)
-            max_end_logits = torch.argmax(end_logits, dim=1)  # tensor of shape(1)
+            max_start_logits = torch.argmax(
+                start_logits, dim=1
+            )  # tensor of shape(batch_size,1)
+            max_end_logits = torch.argmax(
+                end_logits, dim=1
+            )  # tensor of shape(batch_size,1)
 
             layer_wise_attributions = []
 
