@@ -89,7 +89,7 @@ class BertIntegratedGradients:
                 all layers for the provided batch.
         """
 
-        _, _, sequence_output = self.model(
+        start_logits, end_logits, sequence_output, *_ = self.model(
             processed_examples["input_ids"],
             processed_examples["attention_mask"],
             processed_examples["token_type_ids"],
@@ -97,7 +97,11 @@ class BertIntegratedGradients:
             return_dict=False,
         )
 
-        return sequence_output  ##Tuple of 13 tensors, each [batch_size, seq_length, hidden_size]
+        return (
+            start_logits,
+            end_logits,
+            sequence_output,
+        )  ##Tuple of 13 tensors, each [batch_size, seq_length, hidden_size]
 
     def process_examples(self, examples):
         """Process a validation dataset to examples.
@@ -259,8 +263,8 @@ class BertIntegratedGradients:
         self,
         hidden_states,
         attention_mask,
-        start_positions,
-        end_positions,
+        max_start_logits,
+        max_end_logits,
         layer_idx,
     ):
         """Gives out token-wise attributions for a batch for the layer layer_idx.
@@ -268,8 +272,8 @@ class BertIntegratedGradients:
         Args:
             hidden_states (torch.tensor): The hidden states for the batch.
             attention_mask (torch.tensor): The attention mask for the batch.
-            start_positions (torch.tensor): The start positions for the batch.
-            end_positions (torch.tensor): The end positions for the batch.
+            max_start_logits (torch.tensor): The max output start logits for the batch.
+            max_end_logits (torch.tensor): The max output end logits for the batch.
             layer_idx (int): he layer index at which input is sent.
 
         Returns:
@@ -283,7 +287,7 @@ class BertIntegratedGradients:
         )
         start_position_attributions, start_approximation_error = int_grad.attribute(
             hidden_states,
-            target=start_positions,
+            target=max_start_logits,
             n_steps=self.config.n_steps,
             additional_forward_args=(attention_mask, layer_idx, "start"),
             method=self.config.method,
@@ -292,7 +296,7 @@ class BertIntegratedGradients:
         )
         end_position_attributions, end_approximation_error = int_grad.attribute(
             hidden_states,
-            target=end_positions,
+            target=max_end_logits,
             n_steps=self.config.n_steps,
             additional_forward_args=(attention_mask, layer_idx, "end"),
             method=self.config.method,
@@ -324,14 +328,17 @@ class BertIntegratedGradients:
         """
         tokens = self.tokenizer.convert_ids_to_tokens(per_example_input_ids)
         token_wise_attributions = torch.linalg.norm(per_example_attributions, dim=1)
+        # [batch_size,seq_length] = Norm of [batch_size, seq_length, hidden_size]
         token_wise_importances = token_wise_attributions / torch.sum(
             token_wise_attributions, dim=0
-        ).reshape(-1, 1)
+        ).reshape(
+            -1, 1
+        )  # Normalize by sum across seq_length
 
         return (
             tokens,
             token_wise_importances.squeeze(0).detach().cpu().numpy(),
-        )  ## Seq_Length
+        )
 
     def get_word_wise_importances(
         self,
@@ -450,15 +457,19 @@ class BertIntegratedGradients:
                 batch[key] = torch.tensor(
                     batch[key], device=torch.device(self.config.device)
                 )
-            sequence_outputs = self.get_sequence_outputs(batch)
+            start_logits, end_logits, sequence_outputs = self.get_sequence_outputs(
+                batch
+            )
 
-            start_positions = batch["start_positions"]
-            end_positions = batch["end_positions"]
+            # start_positions = batch["start_positions"] # The authors take max softmax output as target
+            # end_positions = batch["end_positions"] # The authors take max softmax output as target
+
+            max_start_logits = torch.argmax(start_logits, dim=1)  # tensor of shape(1)
+            max_end_logits = torch.argmax(end_logits, dim=1)  # tensor of shape(1)
+
             layer_wise_attributions = []
 
-            for i in tqdm(
-                range(len(sequence_outputs) - 1)
-            ):  # 0-> layer 1, 11->layer 12
+            for i in tqdm(range(len(sequence_outputs))):  # 0-> embeddings, 12->layer 12
                 hidden_states = sequence_outputs[i]
                 attention_mask = batch["attention_mask"]
                 layer_idx = i
@@ -466,8 +477,8 @@ class BertIntegratedGradients:
                     self.get_token_wise_attributions_per_layer(
                         hidden_states,
                         attention_mask,
-                        start_positions,
-                        end_positions,
+                        max_start_logits,
+                        max_end_logits,
                         layer_idx,  ## 12, batch_size, seq_length, hidden_size
                     )
                 )
