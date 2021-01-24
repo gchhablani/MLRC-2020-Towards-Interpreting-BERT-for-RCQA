@@ -7,7 +7,7 @@ question, context pair from a dataset in (src.datasets).
 References:
 `<https://captum.ai/docs/extension/integrated_gradients>`_
 
-Note: We intend to switch to layer-wise Integrated Gradients later: 
+Note: We intend to switch to layer-wise Integrated Gradients later:
     `<https://captum.ai/tutorials/Bert_SQUAD_Interpret>`
 
 """

@@ -19,6 +19,16 @@ def _get_color(attr):
 
 
 def format_special_tokens(token):
+    """Convert <> to # if there are any HTML syntax tags.
+
+    Example: '<Hello>' will be converted to '#Hello' to avoid confusion
+    with HTML tags.
+
+    Args:
+        token (str): The token to be formatted.
+    Returns:
+        (str): The formatted token.
+    """
     if token.startswith("<") and token.endswith(">"):
         return "#" + token.strip("<>")
     return token
