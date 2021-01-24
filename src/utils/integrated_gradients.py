@@ -596,7 +596,9 @@ class BertIntegratedGradients:
         layer_wise = [[] for _ in range(num_layers)]
         for batch_idx in range(num_batches):
             for layer_idx in range(num_layers):
-                for sample_idx in range(batch_size):
+                for sample_idx in range(
+                    len(importances[batch_idx][layer_idx])
+                ):  ## Some batches might not be filled up to batch_size
                     layer_wise[layer_idx].append(
                         importances[batch_idx][layer_idx][sample_idx]
                     )
@@ -604,7 +606,7 @@ class BertIntegratedGradients:
         # num_layers, num_samples, 2 -> num_samples, num_layers, 2
         sample_wise = [[] for _ in range(num_batches * batch_size)]
         for layer_idx in range(num_layers):
-            for sample_idx in range(batch_size * num_batches):
+            for sample_idx in range(len(layer_wise[layer_idx])):
                 sample_wise[sample_idx].append(layer_wise[layer_idx][sample_idx])
         return sample_wise
 
