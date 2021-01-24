@@ -4,6 +4,7 @@ Usage:
     $python generate_tables.py --path ~/word_importances --name SQuAD
 """
 import argparse
+import copy
 import pickle as pkl
 import string
 
@@ -44,7 +45,7 @@ stopwords = stopwords.words("english")
 def mark_categories(word_list, category_list):
     question_words = []
     answer_indices = []
-    category_list = category_list.copy()
+    category_list = copy.deepcopy(category_list)
     i = 0
     while i < len(word_list) and category_list[i] == "question":
         i += 1
@@ -62,23 +63,29 @@ def mark_categories(word_list, category_list):
 
     if answer_indices:
         for k in range(
-            answer_indices[0] - 1, min(answer_indices[0] - 6, len(question_words)), -1
+            answer_indices[0] - 1,
+            min(answer_indices[0] - 6, len(question_words) - 1),
+            -1,
         ):
             if category_list[k] == "query_words":
                 category_list[k] = "contextual_and_query"
                 # MARK contextual query if query words
-
             else:
                 category_list[k] = "contextual_words"
         for l in range(
             answer_indices[-1] + 1, min(answer_indices[-1] + 6, len(word_list))
         ):
-            category_list[l] = "contextual_words"
-    return category_list
+            if category_list[l] == "query_words":
+                category_list[l] = "contextual_and_query"
+                # MARK contextual query if query words
+            else:
+                category_list[l] = "contextual_words"
+    return category_list, len(question_words)
 
 
+num_layers = len(word_importances[0])
 layer_wise_percentages = [
-    {"answers": 0, "contextual_words": 0, "query_words": 0} for i in range(12)
+    {"answers": 0, "contextual_words": 0, "query_words": 0} for i in range(num_layers)
 ]
 
 for sample in word_importances:
@@ -86,7 +93,10 @@ for sample in word_importances:
         words = layers[0]
         importances = layers[1]
         categories = layers[2]
-        categories = mark_categories(words, categories)
+        categories, new_index = mark_categories(words, categories)
+        words = words[new_index:]
+        importances = importances[new_index:]
+        categories = categories[new_index:]
         top_5_indices = importances.argsort()[-5:]
         answer_count = 0
         query_count = 0
@@ -99,7 +109,7 @@ for sample in word_importances:
             elif categories[index] == "contextual_words":
                 contextual_count += 1
             elif categories[index] == "contextual_and_query":
-                contextual_count += 1
+                # contextual_count += 1
                 query_count += 1
         layer_wise_percentages[layer_idx]["answers"] += answer_count / 5
         layer_wise_percentages[layer_idx]["contextual_words"] += contextual_count / 5
@@ -123,7 +133,7 @@ pos_percentages = [
         "% punct marks": 0,
         "% words in answer span": 0,
     }
-    for i in range(12)
+    for i in range(num_layers)
 ]
 
 for sample_idx, sample in enumerate(word_importances):
@@ -131,6 +141,11 @@ for sample_idx, sample in enumerate(word_importances):
         words = layers[0]
         importances = layers[1]
         categories = layers[2]
+        new_categories, new_index = mark_categories(words, categories)
+
+        words = words[new_index:]
+        importances = importances[new_index:]
+        categories = categories[new_index:]
 
         # context_count = 0
         # for category in categories:
