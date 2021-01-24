@@ -20,9 +20,9 @@ import json
 import pickle as pkl
 import torch
 
-
 from datasets import Dataset, load_metric
 import nltk
+import numpy as np
 from omegaconf import OmegaConf
 
 nltk.download("averaged_perceptron_tagger")
@@ -230,19 +230,18 @@ quantifier_start_logits, quantifier_end_logits = quantifier_predictions.predicti
     nonquantifier_end_logits,
 ) = nonquantifier_predictions.predictions
 
-quantifier_confidence = torch.mean(
-    torch.max(quantifier_start_logits, dim=-1)
-    + torch.max(quantifier_end_logits, dim=-1)
+quantifier_confidence = np.mean(
+    np.max(quantifier_start_logits, dim=-1) + np.max(quantifier_end_logits, dim=-1)
 )
 
-quantifier_numerical_confidence = torch.mean(
-    torch.max(quantifier_numerical_start_logits, dim=-1)
-    + torch.max(quantifier_numerical_end_logits, dim=-1)
+quantifier_numerical_confidence = np.mean(
+    np.max(quantifier_numerical_start_logits, dim=-1)
+    + np.max(quantifier_numerical_end_logits, dim=-1)
 )
 
-nonquantifier_confidence = torch.mean(
-    torch.max(nonquantifier_start_logits, dim=-1)
-    + torch.max(nonquantifier_end_logits, dim=-1)
+nonquantifier_confidence = np.mean(
+    np.max(nonquantifier_start_logits, dim=-1)
+    + np.max(nonquantifier_end_logits, dim=-1)
 )
 
 print(f"Quantifier Confidence: {quantifier_confidence}")
