@@ -1,5 +1,6 @@
 """Visualization utils."""
 
+import numpy as np
 from IPython.core.display import HTML, display
 
 
@@ -7,13 +8,13 @@ def _get_color(attr):
     # clip values to prevent CSS errors (Values should be from [-1,1])
     attr = max(-1, min(1, attr))
     if attr > 0:
-        hue = 210
+        hue = 200
         sat = 75
-        lig = 100 - int(90 * attr)
+        lig = 100 - int(50 * attr)
     else:
-        hue = 210
+        hue = 200
         sat = 75
-        lig = 100 - int(-90 * attr)
+        lig = 100 - int(-60 * attr)
     return "hsl({}, {}%, {}%)".format(hue, sat, lig)
 
 
@@ -24,8 +25,9 @@ def format_special_tokens(token):
 
 
 def format_word_importances(words, importances):
-    if importances is None or len(importances) == 0:
-        return ""
+    if np.isnan(importances[0]):
+        importances = np.zeros_like(importances)
+
     assert len(words) <= len(importances)
     tags = ["<div>"]
     for word, importance in zip(words, importances[: len(words)]):
