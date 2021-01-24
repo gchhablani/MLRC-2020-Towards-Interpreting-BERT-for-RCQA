@@ -1,5 +1,5 @@
 # Config for Integrated Gradients for SQuAD
-model_checkpoint: "/content/drive/My Drive/MLR/v1_style/squad/model/"
+model_checkpoint: "/content/drive/My Drive/MLR/v1_style/squad/model/squad-bert-base-uncased-model"
 device: cuda
 n_steps: 25
 method: "riemann_right"
