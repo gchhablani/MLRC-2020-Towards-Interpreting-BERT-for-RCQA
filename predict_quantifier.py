@@ -218,6 +218,38 @@ nonquantifier_dataset.set_format(
     columns=list(nonquantifier_dataset.features.keys()),
 )
 
+quantifier_start_logits, quantifier_end_logits = quantifier_predictions.predictions
+
+(
+    quantifier_numerical_start_logits,
+    quantifier_numerical_end_logits,
+) = quantifier_numerical_predictions.predictions
+
+(
+    nonquantifier_start_logits,
+    nonquantifier_end_logits,
+) = nonquantifier_predictions.predictions
+
+quantifier_confidence = torch.mean(
+    torch.max(quantifier_start_logits, dim=-1)
+    + torch.max(quantifier_end_logits, dim=-1)
+)
+
+quantifier_numerical_confidence = torch.mean(
+    torch.max(quantifier_numerical_start_logits, dim=-1)
+    + torch.max(quantifier_numerical_end_logits, dim=-1)
+)
+
+nonquantifier_confidence = torch.mean(
+    torch.max(nonquantifier_start_logits, dim=-1)
+    + torch.max(nonquantifier_end_logits, dim=-1)
+)
+
+print(f"Quantifier Confidence: {quantifier_confidence}")
+
+print(f"Quantifier w Numerical Confidence: {quantifier_numerical_confidence}")
+
+print(f"Non-quantifier Confidence: {nonquantifier_confidence}")
 
 # Process the predictions
 print("### Processing Predictions ###")
