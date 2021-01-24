@@ -48,7 +48,7 @@ parser.add_argument(
     type=str,
     action="store",
     help="The configuration for trainer",
-    default=os.path.join(dirname, "./configs/train/default.yaml"),
+    default=os.path.join(dirname, "./configs/train/squad/default.yaml"),
 )
 
 parser.add_argument(
