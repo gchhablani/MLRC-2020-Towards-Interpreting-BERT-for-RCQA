@@ -140,7 +140,7 @@ sns.heatmap(
     cbar=False,
 )
 fig = plt.gcf()
-fig.set_size_inches(6, 6)
+fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Retained")
 plt.savefig(f"JSD_{args.name}_Heatmap_Retained.png")
 print(
@@ -162,7 +162,7 @@ sns.heatmap(
     cbar=False,
 )
 fig = plt.gcf()
-fig.set_size_inches(6, 6)
+fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Removed")
 plt.savefig(f"JSD_{args.name}_Heatmap_Removed.png")
 print(

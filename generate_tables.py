@@ -43,6 +43,15 @@ stopwords = stopwords.words("english")
 
 
 def mark_categories(word_list, category_list):
+    """Mark in categories whether a word is a query or contextual word.
+
+    Args:
+        word_list (list): List of words.
+        category_list (list): List of word categories (question, context, answer).
+
+    Returns:
+        list,int: list of modified categories, number of question words
+    """
     question_words = []
     answer_indices = []
     category_list = copy.deepcopy(category_list)
