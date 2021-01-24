@@ -90,11 +90,15 @@ print("### Running IG ###")
 ) = big.get_all_importances(load_from_cache=False)
 
 print("### Saving the Scores ###")
-with open(os.path.join(ig_config.store_dir, "samples"), "wb") as out_file:
+with open(os.path.join(ig_config.store_dir, "/quantifier/samples"), "wb") as out_file:
     pkl.dump(samples, out_file)
-with open(os.path.join(ig_config.store_dir, "token_importances"), "wb") as out_file:
+with open(
+    os.path.join(ig_config.store_dir, "/quantifier/token_importances"), "wb"
+) as out_file:
     pkl.dump(token_importances, out_file)
-with open(os.path.join(ig_config.store_dir, "word_importances"), "wb") as out_file:
+with open(
+    os.path.join(ig_config.store_dir, "/quantifier/word_importances"), "wb"
+) as out_file:
     pkl.dump(word_importances, out_file)
 
 print("### Finished ###")
