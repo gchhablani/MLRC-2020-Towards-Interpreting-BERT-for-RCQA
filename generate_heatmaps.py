@@ -142,8 +142,11 @@ else:
     with open(f"Removed Map {args.name}", "rb") as f:
         removed_hmap = pkl.load(f)
 
+plt.style.use("seaborn-white")
+plt.rcParams["axes.edgecolor"] = "0.15"
+plt.rcParams["axes.linewidth"] = 1.25
 ## Retained Heatmap
-sns.heatmap(
+ax = sns.heatmap(
     np.mean(retained_hmap, axis=0)[:12, :12],
     cmap="Blues",
     vmin=0,
@@ -152,11 +155,16 @@ sns.heatmap(
     square=True,
     cbar=False,
     fmt=".2f",
+    annot_kws={"fontweight": "black", "color": "black"},
 )
+ax.axhline(y=0, color="k", linewidth=2)
+ax.axhline(y=12, color="k", linewidth=2)
+ax.axvline(x=0, color="k", linewidth=2)
+ax.axvline(x=12, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Retained")
-plt.savefig(f"JSD_{args.name}_Heatmap_Retained.png")
+plt.savefig(f"JSD_{args.name}_Heatmap_Retained.png", bbox_inches="tight")
 print(
     "Retained Max, Min:\n",
     np.max(np.mean(retained_hmap, axis=0)),
@@ -165,8 +173,9 @@ print(
 with open(f"Retained Map {args.name}", "wb") as f:
     pkl.dump(retained_hmap, f)
 
+plt.clf()
 ## Retained Heatmap
-sns.heatmap(
+ax = sns.heatmap(
     np.mean(removed_hmap, axis=0)[:12, :12],
     cmap="Blues",
     vmin=0,
@@ -175,11 +184,16 @@ sns.heatmap(
     square=True,
     cbar=False,
     fmt=".2f",
+    annot_kws={"fontweight": "black", "color": "black"},
 )
+ax.axhline(y=0, color="k", linewidth=2)
+ax.axhline(y=12, color="k", linewidth=2)
+ax.axvline(x=0, color="k", linewidth=2)
+ax.axvline(x=12, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Removed")
-plt.savefig(f"JSD_{args.name}_Heatmap_Removed.png")
+plt.savefig(f"JSD_{args.name}_Heatmap_Removed.png", bbox_inches="tight")
 print(
     "Removed Max, Min:\n",
     np.max(np.mean(removed_hmap, axis=0)),
