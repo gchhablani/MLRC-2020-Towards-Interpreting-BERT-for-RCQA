@@ -8,13 +8,13 @@ def _get_color(attr):
     # clip values to prevent CSS errors (Values should be from [-1,1])
     attr = max(-1, min(1, attr))
     if attr > 0:
-        hue = 200
-        sat = 75
-        lig = 100 - int(50 * attr)
+        hue = 220
+        sat = 100
+        lig = 100 - int(127 * attr)
     else:
-        hue = 200
-        sat = 75
-        lig = 100 - int(-60 * attr)
+        hue = 220
+        sat = 100
+        lig = 100 - int(-125 * attr)
     return "hsl({}, {}%, {}%)".format(hue, sat, lig)
 
 

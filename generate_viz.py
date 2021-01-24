@@ -40,7 +40,7 @@ with open(args.path, "rb") as f:
 
 # seed = np.random.randint(1, 1000000)
 # print(seed)
-np.random.seed(507943)
+np.random.seed(719477)
 sample_idx = np.random.randint(0, len(word_importances))
 layers_to_plot = [0, 1, 2, 9, 10, 11]
 
