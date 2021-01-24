@@ -56,7 +56,6 @@ for sample in tqdm(range(NUM_SAMPLES)):
     for layer_i in range(NUM_LAYERS):
         for layer_j in range(layer_i + 1, NUM_LAYERS):
             ## divergence of layer_i and layer_i is always zero
-
             ## Layer I
             i_max_indices = importances[sample][layer_i].argsort()[-2:]
             mask_i_retained = []
@@ -71,11 +70,17 @@ for sample in tqdm(range(NUM_SAMPLES)):
 
             ## Retain
             retained_i = np.array(mask_i_retained * importances[sample][layer_i])
-            retained_i = retained_i / np.sum(retained_i)
+            if np.sum(retained_i) != 0:
+                retained_i = retained_i / np.sum(retained_i)
+            else:
+                retained_i = np.ones_like(retained_i) / retained_i.shape[0]
 
             ## Remove
             removed_i = np.array(mask_i_removed * importances[sample][layer_i])
-            removed_i = removed_i / np.sum(removed_i)
+            if np.sum(removed_i) != 0:
+                removed_i = removed_i / np.sum(removed_i)
+            else:
+                removed_i = np.ones_like(removed_i) / removed_i.shape[0]
 
             ## Layer J
             j_max_indices = importances[sample][layer_j].argsort()[-2:]
@@ -91,11 +96,17 @@ for sample in tqdm(range(NUM_SAMPLES)):
 
             ## Retain
             retained_j = np.array(mask_j_retained * importances[sample][layer_j])
-            retained_j = retained_j / np.sum(retained_j)
+            if np.sum(retained_j) != 0:
+                retained_j = retained_j / np.sum(retained_j)
+            else:
+                retained_j = np.ones_like(retained_j) / retained_j.shape[0]
 
             ## Remove
             removed_j = np.array(mask_j_removed * importances[sample][layer_j])
-            removed_j = removed_j / np.sum(removed_j)
+            if np.sum(removed_j) != 0:
+                removed_j = removed_j / np.sum(removed_j)
+            else:
+                removed_j = np.ones_like(removed_j) / removed_j.shape[0]
 
             ## Retained Map
             dist_i_retained = dist(retained_i)
@@ -137,6 +148,8 @@ print(
     np.max(np.mean(retained_hmap, axis=0)),
     np.min(np.mean(np.where(retained_hmap > 0, retained_hmap, np.inf), axis=0)),
 )
+with open(f"Retained Map {args.name}", "wb") as f:
+    f.write(retained_hmap)
 
 ## Retained Heatmap
 sns.heatmap(
@@ -157,3 +170,6 @@ print(
     np.max(np.mean(removed_hmap, axis=0)),
     np.min(np.mean(np.where(removed_hmap > 0, removed_hmap, np.inf), axis=0)),
 )
+
+with open(f"Removed Map {args.name}", "wb") as f:
+    f.write(removed_hmap)
