@@ -1,5 +1,5 @@
 """
-The script to predict and check score on quantifier questions, 
+The script to predict and check score on quantifier questions,
 quantifier questions with more than one numerical words in the passage,
 and non quantifier questions.
 
@@ -7,25 +7,27 @@ This script uses datasets, omegaconf and transformers libraries.
 Please install them in order to run this script.
 
 Usage:
-    $python train.py --train ./configs/train/quad/default.yaml \
+    $python predict_quantifier.py --train ./configs/train/quad/default.yaml \
         --dataset ./configs/datasets/squad/default.yaml
 
 """
+
+
 import os
 import re
 import argparse
 import json
 import pickle as pkl
+import torch
 
 
 from datasets import Dataset, load_metric
 import nltk
-from numpy.core import numeric
 from omegaconf import OmegaConf
 
 nltk.download("averaged_perceptron_tagger")
 
-import torch
+
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
@@ -109,23 +111,25 @@ print(
 print("Non-quantifier Questions: ", len(nonquantifier_ids))
 
 
-quantifier_dataset = Dataset.from_dict(
-    dataset.datasets["validation"][quantifier_ids]
-).map(
-    dataset.prepare_validation_features,
-    batched=True,
-    remove_columns=dataset.datasets["validation"].column_names,
-)
-quantifier_numerical_dataset = Dataset.from_dict(
+quantifier_original = Dataset.from_dict(dataset.datasets["validation"][quantifier_ids])
+quantifier_numerical_original = Dataset.from_dict(
     dataset.datasets["validation"][quantifier_numerical_ids]
-).map(
+)
+
+nonquantifier_original = Dataset.from_dict(
+    dataset.datasets["validation"][nonquantifier_ids]
+)
+quantifier_dataset = quantifier_original.map(
     dataset.prepare_validation_features,
     batched=True,
     remove_columns=dataset.datasets["validation"].column_names,
 )
-nonquantifier_dataset = Dataset.from_dict(
-    dataset.datasets["validation"][nonquantifier_ids]
-).map(
+quantifier_numerical_dataset = quantifier_numerical_original.map(
+    dataset.prepare_validation_features,
+    batched=True,
+    remove_columns=dataset.datasets["validation"].column_names,
+)
+nonquantifier_dataset = nonquantifier_original.map(
     dataset.prepare_validation_features,
     batched=True,
     remove_columns=dataset.datasets["validation"].column_names,
@@ -218,7 +222,7 @@ nonquantifier_dataset.set_format(
 # Process the predictions
 print("### Processing Predictions ###")
 final_quantifier_predictions = postprocess_qa_predictions(
-    dataset.datasets["validation"][quantifier_ids],
+    quantifier_original,
     quantifier_dataset,
     quantifier_predictions.predictions,
     tokenizer,
@@ -226,14 +230,14 @@ final_quantifier_predictions = postprocess_qa_predictions(
 )
 
 final_quantifier_numerical_predictions = postprocess_qa_predictions(
-    dataset.datasets["validation"][quantifier_numerical_ids],
+    quantifier_numerical_original,
     quantifier_numerical_dataset,
     quantifier_numerical_predictions.predictions,
     tokenizer,
     squad_v2=train_config.misc.squad_v2,
 )
 final_nonquantifier_predictions = postprocess_qa_predictions(
-    dataset.datasets["validation"][nonquantifier_ids],
+    nonquantifier_original,
     nonquantifier_dataset,
     nonquantifier_predictions.predictions,
     tokenizer,
@@ -256,10 +260,7 @@ else:
     formatted_quantifier_predictions = [
         {"id": k, "prediction_text": v} for k, v in final_quantifier_predictions.items()
     ]
-references = [
-    {"id": ex["id"], "answers": ex["answers"]}
-    for ex in dataset.datasets["validation"][quantifier_ids]
-]
+references = [{"id": ex["id"], "answers": ex["answers"]} for ex in quantifier_original]
 metrics = metric.compute(
     predictions=formatted_quantifier_predictions, references=references
 )
@@ -283,11 +284,10 @@ if train_config.misc.squad_v2:
 else:
     formatted_quantifier_numerical_predictions = [
         {"id": k, "prediction_text": v}
-        for k, v in final_quantifier_numerical__predictions.items()
+        for k, v in final_quantifier_numerical_predictions.items()
     ]
 references = [
-    {"id": ex["id"], "answers": ex["answers"]}
-    for ex in dataset.datasets["validation"][quantifier_numerical_ids]
+    {"id": ex["id"], "answers": ex["answers"]} for ex in quantifier_numerical_original
 ]
 metrics = metric.compute(
     predictions=formatted_quantifier_numerical_predictions, references=references
@@ -317,8 +317,7 @@ else:
         for k, v in final_nonquantifier_predictions.items()
     ]
 references = [
-    {"id": ex["id"], "answers": ex["answers"]}
-    for ex in dataset.datasets["validation"][nonquantifier_ids]
+    {"id": ex["id"], "answers": ex["answers"]} for ex in nonquantifier_original
 ]
 metrics = metric.compute(
     predictions=formatted_nonquantifier_predictions, references=references
