@@ -27,7 +27,6 @@ parser.add_argument(
     type=str,
     action="store",
     help="The path for token importances binary file.",
-    required=True,
 )
 parser.add_argument(
     "--name",
@@ -37,107 +36,122 @@ parser.add_argument(
     required=True,
 )
 
+parser.add_argument(
+    "--load_binary",
+    action="store_true",
+    help="Whether to load binary file heatmaps.",
+    default=False,
+)
+
 args = parser.parse_args()
-with open(args.path, "rb") as f:
-    token_importances = pkl.load(f)
 
-importances = []
-for sample in token_importances:
-    importances.append([])
-    for layers in sample:
-        importances[-1].append(layers[1])
+if not args.load_binary:
+    with open(args.path, "rb") as f:
+        token_importances = pkl.load(f)
 
-NUM_SAMPLES = len(importances)
-NUM_LAYERS = len(importances[0])
+    importances = []
+    for sample in token_importances:
+        importances.append([])
+        for layers in sample:
+            importances[-1].append(layers[1])
 
-retained_hmap = np.zeros((NUM_SAMPLES, NUM_LAYERS, NUM_LAYERS))
-removed_hmap = np.zeros((NUM_SAMPLES, NUM_LAYERS, NUM_LAYERS))
-for sample in tqdm(range(NUM_SAMPLES)):
-    for layer_i in range(NUM_LAYERS):
-        for layer_j in range(layer_i + 1, NUM_LAYERS):
-            ## divergence of layer_i and layer_i is always zero
-            ## Layer I
-            i_max_indices = importances[sample][layer_i].argsort()[-2:]
-            mask_i_retained = []
-            mask_i_removed = []
-            for i in range(len(importances[sample][layer_i])):
-                if i in i_max_indices:
-                    mask_i_retained.append(1)
-                    mask_i_removed.append(0)
+    NUM_SAMPLES = len(importances)
+    NUM_LAYERS = len(importances[0])
+
+    retained_hmap = np.zeros((NUM_SAMPLES, NUM_LAYERS, NUM_LAYERS))
+    removed_hmap = np.zeros((NUM_SAMPLES, NUM_LAYERS, NUM_LAYERS))
+    for sample in tqdm(range(NUM_SAMPLES)):
+        for layer_i in range(NUM_LAYERS):
+            for layer_j in range(layer_i + 1, NUM_LAYERS):
+                ## divergence of layer_i and layer_i is always zero
+                ## Layer I
+                i_max_indices = importances[sample][layer_i].argsort()[-2:]
+                mask_i_retained = []
+                mask_i_removed = []
+                for i in range(len(importances[sample][layer_i])):
+                    if i in i_max_indices:
+                        mask_i_retained.append(1)
+                        mask_i_removed.append(0)
+                    else:
+                        mask_i_retained.append(0)
+                        mask_i_removed.append(1)
+
+                ## Retain
+                retained_i = np.array(mask_i_retained * importances[sample][layer_i])
+                if np.sum(retained_i) != 0:
+                    retained_i = retained_i / np.sum(retained_i)
                 else:
-                    mask_i_retained.append(0)
-                    mask_i_removed.append(1)
+                    retained_i = np.ones_like(retained_i) / retained_i.shape[0]
 
-            ## Retain
-            retained_i = np.array(mask_i_retained * importances[sample][layer_i])
-            if np.sum(retained_i) != 0:
-                retained_i = retained_i / np.sum(retained_i)
-            else:
-                retained_i = np.ones_like(retained_i) / retained_i.shape[0]
-
-            ## Remove
-            removed_i = np.array(mask_i_removed * importances[sample][layer_i])
-            if np.sum(removed_i) != 0:
-                removed_i = removed_i / np.sum(removed_i)
-            else:
-                removed_i = np.ones_like(removed_i) / removed_i.shape[0]
-
-            ## Layer J
-            j_max_indices = importances[sample][layer_j].argsort()[-2:]
-            mask_j_retained = []
-            mask_j_removed = []
-            for j in range(len(importances[sample][layer_j])):
-                if j in j_max_indices:
-                    mask_j_retained.append(1)
-                    mask_j_removed.append(0)
+                ## Remove
+                removed_i = np.array(mask_i_removed * importances[sample][layer_i])
+                if np.sum(removed_i) != 0:
+                    removed_i = removed_i / np.sum(removed_i)
                 else:
-                    mask_j_retained.append(0)
-                    mask_j_removed.append(1)
+                    removed_i = np.ones_like(removed_i) / removed_i.shape[0]
 
-            ## Retain
-            retained_j = np.array(mask_j_retained * importances[sample][layer_j])
-            if np.sum(retained_j) != 0:
-                retained_j = retained_j / np.sum(retained_j)
-            else:
-                retained_j = np.ones_like(retained_j) / retained_j.shape[0]
+                ## Layer J
+                j_max_indices = importances[sample][layer_j].argsort()[-2:]
+                mask_j_retained = []
+                mask_j_removed = []
+                for j in range(len(importances[sample][layer_j])):
+                    if j in j_max_indices:
+                        mask_j_retained.append(1)
+                        mask_j_removed.append(0)
+                    else:
+                        mask_j_retained.append(0)
+                        mask_j_removed.append(1)
 
-            ## Remove
-            removed_j = np.array(mask_j_removed * importances[sample][layer_j])
-            if np.sum(removed_j) != 0:
-                removed_j = removed_j / np.sum(removed_j)
-            else:
-                removed_j = np.ones_like(removed_j) / removed_j.shape[0]
+                ## Retain
+                retained_j = np.array(mask_j_retained * importances[sample][layer_j])
+                if np.sum(retained_j) != 0:
+                    retained_j = retained_j / np.sum(retained_j)
+                else:
+                    retained_j = np.ones_like(retained_j) / retained_j.shape[0]
 
-            ## Retained Map
-            dist_i_retained = dist(retained_i)
-            dist_j_retained = dist(retained_j)
-            retained_hmap[sample][layer_i][layer_j] = jsd(
-                [dist_i_retained, dist_j_retained]
-            )
-            retained_hmap[sample][layer_j][layer_i] = retained_hmap[sample][layer_i][
-                layer_j
-            ]
+                ## Remove
+                removed_j = np.array(mask_j_removed * importances[sample][layer_j])
+                if np.sum(removed_j) != 0:
+                    removed_j = removed_j / np.sum(removed_j)
+                else:
+                    removed_j = np.ones_like(removed_j) / removed_j.shape[0]
 
-            ## Removed Map
-            dist_i_removed = dist(removed_i)
-            dist_j_removed = dist(removed_j)
-            removed_hmap[sample][layer_i][layer_j] = jsd(
-                [dist_i_removed, dist_j_removed]
-            )
-            removed_hmap[sample][layer_j][layer_i] = removed_hmap[sample][layer_i][
-                layer_j
-            ]
+                ## Retained Map
+                dist_i_retained = dist(retained_i)
+                dist_j_retained = dist(retained_j)
+                retained_hmap[sample][layer_i][layer_j] = jsd(
+                    [dist_i_retained, dist_j_retained]
+                )
+                retained_hmap[sample][layer_j][layer_i] = retained_hmap[sample][
+                    layer_i
+                ][layer_j]
 
+                ## Removed Map
+                dist_i_removed = dist(removed_i)
+                dist_j_removed = dist(removed_j)
+                removed_hmap[sample][layer_i][layer_j] = jsd(
+                    [dist_i_removed, dist_j_removed]
+                )
+                removed_hmap[sample][layer_j][layer_i] = removed_hmap[sample][layer_i][
+                    layer_j
+                ]
+else:
+    with open(f"Retained Map {args.name}", "rb") as f:
+        retained_hmap = pkl.load(f)
+
+    with open(f"Removed Map {args.name}", "rb") as f:
+        removed_hmap = pkl.load(f)
 
 ## Retained Heatmap
 sns.heatmap(
-    np.mean(retained_hmap, axis=0),
+    np.mean(retained_hmap, axis=0)[:12, :12],
     cmap="Blues",
     vmin=0,
     vmax=1,
     annot=True,
     square=True,
     cbar=False,
+    fmt=".2f",
 )
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
@@ -149,17 +163,18 @@ print(
     np.min(np.mean(np.where(retained_hmap > 0, retained_hmap, np.inf), axis=0)),
 )
 with open(f"Retained Map {args.name}", "wb") as f:
-    f.write(retained_hmap)
+    pkl.dump(retained_hmap, f)
 
 ## Retained Heatmap
 sns.heatmap(
-    np.mean(removed_hmap, axis=0),
+    np.mean(removed_hmap, axis=0)[:12, :12],
     cmap="Blues",
     vmin=0,
     vmax=1,
     annot=True,
     square=True,
     cbar=False,
+    fmt=".2f",
 )
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
@@ -172,4 +187,4 @@ print(
 )
 
 with open(f"Removed Map {args.name}", "wb") as f:
-    f.write(removed_hmap)
+    pkl.dump(removed_hmap, f)
