@@ -124,7 +124,7 @@ def postprocess_qa_predictions(
                                 "end_positions"
                             ],
                             "example_id": features[feature_index]["example_id"],
-                            "offset_maping": features[feature_index]["offset_mapping"],
+                            "offset_mapping": features[feature_index]["offset_mapping"],
                         }
                     )
 
