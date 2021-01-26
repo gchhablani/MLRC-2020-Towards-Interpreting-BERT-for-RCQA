@@ -112,6 +112,7 @@ We repeated this with 1000 features, instead of examples, and observe similar he
 
 
 The essence of this analysis is to look at the gap between max and min values in the heatmap, and which pair of layers have similar top-k importances, and which pair of layers have different top-k importances.
+
 ### QA Functionality
 
 
@@ -121,3 +122,83 @@ The essence of this analysis is to look at the gap between max and min values in
 ### Quantifier Questions
 
 
+## QnA with the authors
+
+1. BertTokenizer usually breaks a word into multiple tokens due to WordPiece Embeddings. In that case, for some words there will be multiple vectors for each layer. A simple way to combine these would be to average them for a word. How was this handled in the implementation?
+
+   - We keep the embeddings for the different segments of a word separate, and calculate separate integrated gradient scores for them, which we then normalize to get importance scores. Later, we add up the importance scores of all these segments to get the overall importance score of the word. [The segments can be identified by searching for a "##" symbol in the word - this can be checked and confirmed by printing out the passage words]. 
+
+2. Bert Base has a max sequence length of 512 tokens. For DuoRC SelfRC the max length of tokens for train is 3467 per passage, with the mean of 660. Similarly, for SQuAD v1.1 the max length is 853, with the mean of 152. For each of these, is the max length set to 512? If that is done, then is only the article/passage/context truncated? If yes, how?
+
+    - We maintain the max length of 384 tokens in both SQuAD and DuoRC in our experiments. 
+
+3. For Duo RC, there are cases where there are multiple answers to a question, and good number of cases where the answer is not present in the passage, what is done regarding these cases during the implementation?
+Example for Multiple Answers:
+
+    ```['Maurido', 'Mauricio']
+    ['to own a hotel', 'to own his own hotel']
+    ['Tijuana, Mexico', 'Tiajuana']
+    ['Tessa.', 'Tessa', 'Tessa']
+    ```
+
+   - We use the available tensorflow implementation of BERT, which handles multiple answers by itself. Multiple answers are seen in SQuAD as well as DuoRC.
+
+4. How did you find numerical words/tokens in the passage/question and quantifier questions? I checked a library called word2number but it only works for number spans, and only when it is an exact number word. I couldn't find any popular approaches.
+
+   - We use NLTK POS tagging on the passage words, and the words which have the POS tag of 'CD' (cardinal) are taken to be the quantifier words. On the question side, we take questions which have the words "how many" or "how much" as quantifier questions.
+
+5. What is the base used for Jensen-Shannon Divergence? The units or log base.
+
+   - We use the implementation of jensen_shannon_divergence from the library dit.divergences . Please check the documentation, I am unable to recollect the exact details now.
+"from dit.divergences import jensen_shannon_divergence"
+
+6. How was the contextual passage for t-SNE visualization decided? Was this supposed to be the whole sentence that contains the answer "span"?
+
+   - We chose words within a distance of 5 words on either side of the answer span as contextual words for tables. The whole sentence was chosen for t-SNE visualization.
+
+7. What were the other training/fine-tuning choices made, with respect to hyperparameters, optimizers, schedulers, etc.?
+
+   - We used the default config given in BERT's official code. However, we changed the batch size to 6 to fit our GPU.
+
+8. What is EM in `87.35% EM`? (mentioned in Section 5.2 in the Quantifier Questions subsection)
+
+   - To measure the performance of the model on answer spans, both SQuAD and DuoRC use the same code - with 2 metrics : F1 score and Exact Match (EM). The 87.35% EM refers to the exact match score.
+
+9. The paper mentions that all answer spans are in the passage. While that is true for SQuAD, DuoRC has answers not present in the passage. Did you remove such cases?
+
+    - Yes, we remove train cases where the answer is not in the passage (this is done by the BERT code itself). However, we do not remove any data points from the dev set.
+
+10. I have another doubt regarding t-SNE representations. For multi-token words, do you take the average of all those token representations as the word representation while plotting?
+
+    - tSNE was a qualitative analysis, and for the examples we picked, we didn't observe segmentation of words. If you'reanalyzing examples with segmentation, I guess you could try both merging the embeddings, or keeping the different segments separate.
+
+11. When calculating Integrated Gradients, for start and end there will be different attribution values for each word representation (because we have two outputs for each input), how was it combined when calculating the IG for each word?
+
+    - We calculate the IG of both the start probabilities and the end probabilities with respect to the word embedding at hand, and then add them up.
+
+12. I store tokens, token_wise_importances, words, and word_wise_importances (after removing special tokens and combining at ##)
+The JSD was built on token wise distributions or word wise distributions?
+
+    - JSD was on token wise with length 384, table on word wise importances
+
+13. Should the IG be calculated on ground targets or predicted outcomes?
+
+    - We calculated the attributions of what the model *has* predicted, rather than what it *should have* predicted. We followed another attention analysis based paper for this logic.
+
+14. What if a particular word is a query word and also in the contextual span (within window size 5 of the answer)?
+
+    - I just consider them twice then.. if a word was both a query word and a contextual word, it probably would have served dual functionality in the training as well, I guess.
+    - While finding query words, remove the stopwords from the search.
+
+15. Should the stopwords be removed for query as well as contextual words? Should the window size be applied after removing stopwords or before? Should the top-5 words contain stopwords?
+
+    - Keep them for contextual. Because they are actually part of the context. But when finding question words in the passage, ignore the stop words in the question because you'll probably find many "is" or "the" or etc in the passage and all they needn't correspond to the query.
+
+    - Should top-5 words include stopwords? - here it's okay
+
+16. The answer spans/answers in the analysis are actual answers right? 
+
+    - again, we chose the answer which the model predicted, not the actual answer span (same logic as used for IG).
+  
+17. Did you take predicted answers for tables and t-SNE as well?
+    - I used predicted (and processed) answers for all the analysis after training.
