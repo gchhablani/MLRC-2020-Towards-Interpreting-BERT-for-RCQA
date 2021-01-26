@@ -23,6 +23,7 @@ from datasets import Dataset
 
 
 import torch
+import torch.nn.functional as F
 from tqdm.auto import tqdm
 from transformers import BertForQuestionAnswering, BertTokenizerFast
 
@@ -44,48 +45,37 @@ class BertIntegratedGradients:
 
     Attributes:
         config (omegaconf.dictconfig.DictConfig): The configuration for integrated gradients.
-        dataset (src.dataset): The dataset from which samples are chosen.
         model (transformers.models.PreTrainedModel): The model for question-answering to be used.
         tokenizer (transformers.tokenization_utils_fast.PreTrainedTokenizerFast):
             The tokenizer to be used.
-        train_datasets (datasets.dataset_dict.DatasetDict):
-            The tokenized and processed datasets to be passed to the model.
-        validation_dataset (datasets.arrow_dataset.Dataset):
-            The tokenized and processed validation dataset for prediction.
-        untokenized_datasets (datasets.dataset_dict.DatasetDict):
-            The untokenized datasets from the src.datasets package.
-
+        dataset (datasets.arrow_dataset.Dataset):
+            The tokenized and processed validation dataset with predictions.
     """
 
-    def __init__(self, config, dataset):
+    def __init__(self, config, predictions):
         """Initialize the BertIntegratedGradients class.
 
         Args:
             config (omegaconf.dictconfig.DictConfig): The configuration for integrated gradients.
-            dataset (src.dataset): The dataset from which samples are chosen.
+            predictions (dict): The prediction results from which samples are chosen.
         """
         self.config = config
-        self.dataset = dataset
+        self.dataset = Dataset.from_dict(predictions)
+
         self.model = BertForQuestionAnswering.from_pretrained(
             self.config.model_checkpoint
         )
         self.model.eval()
         self.model.to(torch.device(self.config.device))
         self.model.zero_grad()
-        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-        self.train_datasets, self.validation_dataset = self.dataset.get_datasets()
-        self.untokenized_datasets = self.dataset.datasets
 
-        self.train_validation_samples = None
-        # self.processed_examples = Dataset.from_dict(
-        #     self.process_examples(self.validation_dataset)
-        # )
+        self.tokenizer = BertTokenizerFast.from_pretrained(self.config.model_checkpoint)
 
-    def get_sequence_outputs(self, processed_examples):
-        """Get all the layer-wise hidden states for processed_examples.
+    def get_sequence_outputs(self, predictions):
+        """Get all the layer-wise hidden states for input ids.
 
         Args:
-            processed_examples (dict): The batch examples dictionary.
+            predictions (dict): The batch examples dictionary.
 
         Returns:
             tuple(torch.tensor): The tuple containing hidden states for
@@ -93,24 +83,23 @@ class BertIntegratedGradients:
         """
 
         start_logits, end_logits, sequence_output, *_ = self.model(
-            processed_examples["input_ids"],
-            processed_examples["attention_mask"],
-            processed_examples["token_type_ids"],
+            predictions["input_ids"],
+            predictions["attention_mask"],
+            predictions["token_type_ids"],
             output_hidden_states=True,
             return_dict=False,
         )
 
         return (
-            start_logits,
-            end_logits,
+            F.softmax(start_logits, dim=-1),
+            F.softmax(end_logits, dim=-1),
             sequence_output,
         )  ##Tuple of 13 tensors, each [batch_size, seq_length, hidden_size]
 
     def process_examples(self, examples):
-        """Process a validation dataset to examples.
+        """Process a prediction dataset to fix offsets and make tensors.
 
-        This method takes in a Dataset object and maps corresponding context,
-        question, answers, start and end positions, etc to each example.
+        This method takes in a Dataset object and maps the correct question offsets to each example.
 
         Args:
             examples (datasets.arrow_dataset.Dataset): The validation dataset/samples to be used.
@@ -119,66 +108,19 @@ class BertIntegratedGradients:
             dict: The dictionary containing all input_ids, token_type_ids, question, etc. for
                 all samples passed.
         """
-        input_ids = torch.tensor(
-            examples["input_ids"], device=torch.device(self.config.device)
-        )
-        token_type_ids = torch.tensor(
-            examples["token_type_ids"], device=torch.device(self.config.device)
-        )
-        attention_mask = torch.tensor(
-            examples["attention_mask"], device=torch.device(self.config.device)
-        )
-        offset_mapping = examples["offset_mapping"]
 
-        validation_for_training = self.train_validation_samples
-        start_positions = torch.tensor(
-            validation_for_training["start_positions"],
-            device=torch.device(self.config.device),
-        )
-        end_positions = torch.tensor(
-            validation_for_training["end_positions"],
-            device=torch.device(self.config.device),
-        )
-
-        untokenized_validation = self.untokenized_datasets["validation"]
-
-        questions = []
-        contexts = []
-        answers = []
-
-        for example_idx in range(len(examples["input_ids"])):
-            original_example = untokenized_validation[
-                np.array(untokenized_validation["id"])
-                == examples["example_id"][example_idx]  # Find the matching example
-            ]
-            question = original_example["question"][0]
-            questions.append(question)
+        for example_idx, example in enumerate(examples):
+            question = example["question"]
 
             question_offsets = self.tokenizer(question, return_offsets_mapping=True)[
                 "offset_mapping"
             ]
             for i, question_offset in enumerate(question_offsets):
-                offset_mapping[example_idx][
+                example["offset_mapping"][
                     i
                 ] = question_offset  # Mark question offsets too
 
-            context = original_example["context"][0]
-            contexts.append(context)
-
-            answer = original_example["answers"][0]
-            answers.append(answer)
-
-        return {
-            "input_ids": input_ids,
-            "token_type_ids": token_type_ids,
-            "attention_mask": attention_mask,
-            "offset_mapping": offset_mapping,
-            "start_positions": start_positions,
-            "end_positions": end_positions,
-            "question": questions,  # list of str
-            "context": contexts,  # list of str
-            "answers": answers,  # list of str
-        }
+        return examples
 
     def get_output_up_to_layer(
         self,
@@ -257,7 +199,11 @@ class BertIntegratedGradients:
 
             pred = self.model.qa_outputs(layer_input)
             start_logits, end_logits = pred.split(1, dim=-1)
-            pred = start_logits if position == "start" else end_logits
+            pred = (
+                F.softmax(start_logits, dim=-1)
+                if position == "start"
+                else F.softmax(end_logits, dim=-1)
+            )
             return pred.reshape(-1, hidden_states.size(-2))
 
         else:
@@ -470,11 +416,11 @@ class BertIntegratedGradients:
             word_wise_category,
         )  ## Normalized Scores
 
-    def get_importances_across_all_layers(self, processed_examples):
+    def get_importances_across_all_layers(self, predictions):
         """Get importances for the examples across all layers.
 
         Args:
-            processed_examples (dict): The dataset containing the processed examples.
+            predictions (dict): The dict containing the predictions.
 
         Returns:
             dict: The dictionary containing the word-wise and token-wise importances.
@@ -484,17 +430,15 @@ class BertIntegratedGradients:
         overall_token_importances = []
 
         for batch_idx in tqdm(
-            range(0, len(processed_examples), self.config.internal_batch_size)
+            range(0, len(predictions), self.config.internal_batch_size)
         ):
-            batch = processed_examples[
-                batch_idx : batch_idx + self.config.internal_batch_size
-            ]
+            batch = predictions[batch_idx : batch_idx + self.config.internal_batch_size]
             columns = [
                 "input_ids",
                 "token_type_ids",
                 "attention_mask",
-                "start_positions",
-                "end_positions",
+                "start_index",
+                "end_index",
             ]
 
             for key in columns:
@@ -555,8 +499,8 @@ class BertIntegratedGradients:
                     question = batch["question"][example_index]
                     context = batch["context"][example_index]
                     offset_mapping = batch["offset_mapping"][example_index]
-                    start_position = batch["start_positions"][example_index]
-                    end_position = batch["end_positions"][example_index]
+                    start_position = batch["start_index"][example_index]
+                    end_position = batch["end_index"][example_index]
                     word_wise_importances = self.get_word_wise_importances(
                         question,
                         context,
@@ -626,24 +570,22 @@ class BertIntegratedGradients:
             tuple: The tuple containing the samples,
                 word importance tuples and token importance tuples.
         """
-        if n_samples > len(self.validation_dataset["input_ids"]):
+        if n_samples > len(self.dataset):
             raise ValueError(
                 "n_samples cannot be greater than the samples in validation_dataset"
             )
         np.random.seed(42)
         random_indices = list(
             np.random.choice(
-                list(range(len(self.validation_dataset["input_ids"]))),
+                list(range(len(self.dataset["input_ids"]))),
                 size=n_samples,
                 replace=False,
             )
         )
-        self.train_validation_samples = self.train_datasets["validation"][
-            random_indices
-        ]
         samples = Dataset.from_dict(
-            self.process_examples(self.validation_dataset[random_indices])
+            self.dataset.map(self.process_examples, batched=True)[random_indices]
         )
+
         importances = self.get_importances_across_all_layers(samples)
         word_importances = self.rearrange_importances(importances["word_importances"])
         token_importances = self.rearrange_importances(importances["token_importances"])
@@ -653,7 +595,7 @@ class BertIntegratedGradients:
     def get_all_importances(
         self,
         load_from_cache=True,
-        cache="/content/drive/My Drive/MLR/squad_ig_processed_dataset",
+        cache="/content/drive/My Drive/MLR/v1_style/cache/squad_id",
     ):
         """Get importance values for all samples across all layers.
 
@@ -667,12 +609,14 @@ class BertIntegratedGradients:
             tuple: The tuple containing the samples, word importance tuples
                 and token importance tuples.
         """
-        self.train_validation_samples = self.train_datasets["validation"]
+
         if load_from_cache and os.path.exists(cache):
             with open(cache, "rb") as in_file:
                 samples = pkl.load(in_file)
         else:
-            samples = Dataset.from_dict(self.process_examples(self.validation_dataset))
+            samples = Dataset.from_dict(
+                self.dataset.map(self.process_examples, batched=True)
+            )
             with open(cache, "wb") as out_file:
                 pkl.dump(samples, out_file)
 
