@@ -72,9 +72,12 @@ seed(train_config.args.seed)
 # Load datasets
 print("### Loading Datasets ###")
 datasets = configmapper.get("datasets", dataset_config.dataset_name)(dataset_config)
-print(datasets.get_datasets())
 training_datasets, validation_dataset = datasets.get_datasets()
 
+print("Training Datasets")
+print(training_datasets)
+print("Validation Dataset")
+print(validation_dataset)
 
 # Train
 
@@ -136,17 +139,20 @@ validation_dataset.set_format(
     type=validation_dataset.format["type"],
     columns=list(validation_dataset.features.keys()),
 )
-print(validation_dataset)
 
 # Process the predictions
 print("### Processing Predictions ###")
 final_predictions = postprocess_qa_predictions(
     datasets.datasets["validation"],
     validation_dataset,
+    training_datasets["validation"],
     raw_predictions.predictions,
     tokenizer,
     squad_v2=train_config.misc.squad_v2,
 )
+
+with open(train_config.misc.final_predictions_file, "wb") as f:
+    pkl.dump(final_predictions, f)
 
 # Metric Calculation
 print("### Calculating Metrics ###")

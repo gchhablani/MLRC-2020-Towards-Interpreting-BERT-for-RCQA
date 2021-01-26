@@ -4,12 +4,14 @@
 import collections
 
 import numpy as np
+from numpy.core.numeric import NaN
 from tqdm.auto import tqdm
 
 
 def postprocess_qa_predictions(
     examples,
     features,
+    validation_set,
     raw_predictions,
     tokenizer,
     n_best_size=20,
@@ -20,7 +22,8 @@ def postprocess_qa_predictions(
 
     Args:
         examples (dict): The original untokenized examples.
-        features (datasets.arrow_dataset.Dataset): The features generated post tokenization.
+        features (datasets.arrow_dataset.Dataset): The features generated post tokenization for prediction.
+        validation_set (datasets.arrow_dataset.Dataset): The set generated post tokenization for validation.
         raw_predictions (np.ndarray):
             The raw predictions (logits) for start and end for all features.
         tokenizer (transformers.tokenization_utils_fast.PreTrainedTokenizerFast):
@@ -108,6 +111,19 @@ def postprocess_qa_predictions(
                         {
                             "score": start_logits[start_index] + end_logits[end_index],
                             "text": context[start_char:end_char],
+                            "start_index": start_index,
+                            "end_index": end_index,
+                            "input_ids": features[feature_index]["input_ids"],
+                            "token_type_ids": features[feature_index]["token_type_ids"],
+                            "context": example["context"],
+                            "question": example["question"],
+                            "start_positions": validation_set[feature_index][
+                                "start_positions"
+                            ],
+                            "end_positions": validation_set[feature_index][
+                                "end_positions"
+                            ],
+                            "example_id": features[feature_index]["example_id"],
                         }
                     )
 
@@ -118,14 +134,40 @@ def postprocess_qa_predictions(
         else:
             # In the very rare edge case we have not a single non-null prediction,
             # we create a fake prediction to avoid failure.
-            best_answer = {"text": "", "score": 0.0}
+            best_answer = {
+                "text": "",
+                "score": 0.0,
+                "start_index": None,
+                "end_index": None,
+                "input_ids": None,
+                "token_type_ids": None,
+                "context": example["context"],
+                "question": example["question"],
+                "start_positions": None,
+                "end_positions": None,
+                "example_id": example["id"],
+            }
 
         # Let's pick our final answer: the best one or the null answer (only for squad_v2)
         if not squad_v2:
-            predictions[example["id"]] = best_answer["text"]
+            predictions[example["id"]] = best_answer
         else:
             answer = (
-                best_answer["text"] if best_answer["score"] > min_null_score else ""
+                best_answer
+                if best_answer["score"] > min_null_score
+                else {
+                    "text": "",
+                    "score": 0.0,
+                    "start_index": None,
+                    "end_index": None,
+                    "input_ids": None,
+                    "token_type_ids": None,
+                    "context": example["context"],
+                    "question": example["question"],
+                    "start_positions": None,
+                    "end_positions": None,
+                    "example_id": example["id"],
+                }
             )
             predictions[example["id"]] = answer
 
