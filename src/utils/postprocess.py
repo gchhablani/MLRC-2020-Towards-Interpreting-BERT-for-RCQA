@@ -124,6 +124,7 @@ def postprocess_qa_predictions(
                                 "end_positions"
                             ],
                             "example_id": features[feature_index]["example_id"],
+                            "offset_maping": features[feature_index]["offset_mapping"],
                         }
                     )
 
@@ -146,6 +147,7 @@ def postprocess_qa_predictions(
                 "start_positions": None,
                 "end_positions": None,
                 "example_id": example["id"],
+                "offset_mapping": None,
             }
 
         # Let's pick our final answer: the best one or the null answer (only for squad_v2)
@@ -167,6 +169,7 @@ def postprocess_qa_predictions(
                     "start_positions": None,
                     "end_positions": None,
                     "example_id": example["id"],
+                    "offset_mapping": None,
                 }
             )
             predictions[example["id"]] = answer
