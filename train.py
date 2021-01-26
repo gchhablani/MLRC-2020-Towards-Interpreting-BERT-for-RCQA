@@ -163,12 +163,12 @@ else:
 
 if train_config.misc.squad_v2:
     formatted_predictions = [
-        {"id": k, "prediction_text": v, "no_answer_probability": 0.0}
+        {"id": k, "prediction_text": v["text"], "no_answer_probability": 0.0}
         for k, v in final_predictions.items()
     ]
 else:
     formatted_predictions = [
-        {"id": k, "prediction_text": v} for k, v in final_predictions.items()
+        {"id": k, "prediction_text": v["text"]} for k, v in final_predictions.items()
     ]
 references = [
     {"id": ex["id"], "answers": ex["answers"]} for ex in datasets.datasets["validation"]
