@@ -17,7 +17,6 @@ from omegaconf import OmegaConf
 
 # from transformers import BertTokenizer, BertForQuestionAnswering
 
-from src.datasets import SQuAD, DuoRCModified
 from src.utils.integrated_gradients import BertIntegratedGradients
 from src.utils.mapper import configmapper
 
@@ -36,13 +35,6 @@ parser.add_argument(
     help="The configuration for integrated gradients",
     default=os.path.join(dirname, "./configs/integrated_gradients/squad.yaml"),
 )
-parser.add_argument(
-    "--dataset",
-    type=str,
-    action="store",
-    help="The configuration for dataset",
-    default=os.path.join(dirname, "./configs/datasets/squad/default.yaml"),
-)
 
 args = parser.parse_args()
 ig_config = OmegaConf.load(args.config)
@@ -50,10 +42,11 @@ dataset_config = OmegaConf.load(args.dataset)
 
 # Load dataset
 print("### Loading Dataset ###")
-dataset = configmapper.get("datasets", dataset_config.dataset_name)(dataset_config)
+with open(ig_config.predictions_path, "rb") as f:
+    predictions = pkl.load(f)
 
 # Initialize BertIntegratedGradients
-big = BertIntegratedGradients(ig_config, dataset)
+big = BertIntegratedGradients(ig_config, predictions)
 
 print("### Running IG ###")
 (
