@@ -4,12 +4,16 @@
    importances of the top-5 words in a few layers from it.
 
    Usage:
-    $python generate_viz.py --path ~/Downloads/word_importances --name SQuAD
+    $python generate_viz.py --path ~/Downloads/ --name SQuAD
+
+    The files should be named - `word_importances`, and `word_importances_prediction_based`
 """
+import os
 
 import argparse
 import pickle as pkl
 import numpy as np
+
 
 from src.utils.viz import format_word_importances
 
@@ -23,7 +27,7 @@ parser.add_argument(
     "--path",
     type=str,
     action="store",
-    help="The path for word importances binary file.",
+    help="The path for word importances binary files.",
     required=True,
 )
 parser.add_argument(
@@ -35,22 +39,36 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
-with open(args.path, "rb") as f:
+with open(os.path.join(args.path, "word_importances"), "rb") as f:
     word_importances = pkl.load(f)
 
-# seed = np.random.randint(1, 1000000)
-# print(seed)
-np.random.seed(719477)
+with open(os.path.join(args.path, "word_importances_prediction_based"), "rb") as f:
+    word_importances_predictions = pkl.load(f)
+
+with open(os.path.join(args.path, "word_importances_prediction_based_new"), "rb") as f:
+    word_importances_predictions_new = pkl.load(f)
+
+seed = np.random.randint(1, 1000000)
+print(seed)
+np.random.seed(seed)  # 719477
 sample_idx = np.random.randint(0, len(word_importances))
 layers_to_plot = [0, 1, 2, 9, 10, 11]
 
 question_words = []
 answer_words = []
 passage_words = []
+predicted_answer_words = []
+predicted_cleaned_answer_words = []
 all_words = word_importances[sample_idx][0][0]
 all_importances = word_importances[sample_idx][0][1]
 all_categories = word_importances[sample_idx][0][2]
+predicted_categories = word_importances_predictions[sample_idx][0][2]
+predicted_cleaned_categories = word_importances_predictions_new[sample_idx][0][2]
 for word_idx, word in enumerate(all_words):
+    if predicted_categories[word_idx] == "answer":
+        predicted_answer_words.append(word)
+    if predicted_cleaned_categories[word_idx] == "answer":
+        predicted_cleaned_answer_words.append(word)
     if all_categories[word_idx] == "question":
         question_words.append(word)
     elif all_categories[word_idx] == "context" and word != "":
@@ -62,10 +80,15 @@ for word_idx, word in enumerate(all_words):
 
 html = "<table><tr>"
 html += (
-    "<td colspan=4 style='border-top: 1px solid black;border-bottom: 1px solid black'><b>Question:</b> "
+    "<td colspan=4 style='border-top: 1px solid black;border-bottom:\
+         1px solid black'><b>Question:</b> "
     + " ".join(question_words)
-    + "<br><b>Answer: </b>"
+    + "<br><b>Actual Answer: </b>"
     + " ".join(answer_words)
+    + "<br><b>Predicted Answer: </b>"
+    + " ".join(predicted_answer_words)
+    + "<br><b>Cleaned predicted Answer: </b>"
+    + " ".join(predicted_cleaned_answer_words)
     + "</td></tr>"
 )
 layer_divs = []
@@ -100,5 +123,5 @@ for i in range(0, num_rows):
         html += "</tr>"
 html += "</table>"
 
-with open("viz.html", "w") as f:
+with open(f"{args.name}_{seed}_viz.html", "w") as f:
     f.write(html)

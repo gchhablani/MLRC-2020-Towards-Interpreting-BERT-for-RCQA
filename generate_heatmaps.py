@@ -35,7 +35,14 @@ parser.add_argument(
     help="The name of the dataset to be used while storing heatmaps.",
     required=True,
 )
-
+parser.add_argument(
+    "--topk",
+    type=int,
+    action="store",
+    help="The topk token importances to be chosen.",
+    required=True,
+    default=2,
+)
 parser.add_argument(
     "--load_binary",
     action="store_true",
@@ -65,7 +72,7 @@ if not args.load_binary:
             for layer_j in range(layer_i + 1, NUM_LAYERS):
                 ## divergence of layer_i and layer_i is always zero
                 ## Layer I
-                i_max_indices = importances[sample][layer_i].argsort()[-2:]
+                i_max_indices = importances[sample][layer_i].argsort()[-args.topk :]
                 mask_i_retained = []
                 mask_i_removed = []
                 for i in range(len(importances[sample][layer_i])):
@@ -91,7 +98,7 @@ if not args.load_binary:
                     removed_i = np.ones_like(removed_i) / removed_i.shape[0]
 
                 ## Layer J
-                j_max_indices = importances[sample][layer_j].argsort()[-2:]
+                j_max_indices = importances[sample][layer_j].argsort()[-args.topk :]
                 mask_j_retained = []
                 mask_j_removed = []
                 for j in range(len(importances[sample][layer_j])):
@@ -136,10 +143,10 @@ if not args.load_binary:
                     layer_j
                 ]
 else:
-    with open(f"Retained Map {args.name}", "rb") as f:
+    with open(f"Retained Map {args.name} {args.topk}", "rb") as f:
         retained_hmap = pkl.load(f)
 
-    with open(f"Removed Map {args.name}", "rb") as f:
+    with open(f"Removed Map {args.name} {args.topk}", "rb") as f:
         removed_hmap = pkl.load(f)
 
 plt.style.use("seaborn-white")
@@ -163,14 +170,14 @@ ax.axvline(x=0, color="k", linewidth=2)
 ax.axvline(x=12, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
-plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Retained")
-plt.savefig(f"JSD_{args.name}_Heatmap_Retained.png", bbox_inches="tight")
+plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Retained")
+plt.savefig(f"JSD_{args.name}_{args.topk}_Heatmap_Retained.png", bbox_inches="tight")
 print(
     "Retained Max, Min:\n",
     np.max(np.mean(retained_hmap, axis=0)),
     np.min(np.mean(np.where(retained_hmap > 0, retained_hmap, np.inf), axis=0)),
 )
-with open(f"Retained Map {args.name}", "wb") as f:
+with open(f"Retained Map {args.name} {args.topk}", "wb") as f:
     pkl.dump(retained_hmap, f)
 
 plt.clf()
@@ -192,13 +199,13 @@ ax.axvline(x=0, color="k", linewidth=2)
 ax.axvline(x=12, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
-plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top 2 Removed")
-plt.savefig(f"JSD_{args.name}_Heatmap_Removed.png", bbox_inches="tight")
+plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Removed")
+plt.savefig(f"JSD_{args.name}_{args.topk}_Heatmap_Removed.png", bbox_inches="tight")
 print(
     "Removed Max, Min:\n",
     np.max(np.mean(removed_hmap, axis=0)),
     np.min(np.mean(np.where(removed_hmap > 0, removed_hmap, np.inf), axis=0)),
 )
 
-with open(f"Removed Map {args.name}", "wb") as f:
+with open(f"Removed Map {args.name} {args.topk}", "wb") as f:
     pkl.dump(removed_hmap, f)
