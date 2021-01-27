@@ -74,16 +74,18 @@ for i in range(sentence_start_index+1, sentence_end_index):
     if category_list[i]!='answer span':
         category_list[i]='contextual words'
 
+#Defining legend
+query_words_legend = mlines.Line2D([0], [0], marker='v', color='w', label='query words',markerfacecolor='g', markersize=13)
+contextual_words_legend = mlines.Line2D([0], [0], marker='X', color='w', label='contextual words',markerfacecolor='magenta', markersize=15)
+plt.legend(loc= 'upper right', handles=[answer_span_legend,CLS_SEP_legend,query_words_legend,contextual_words_legend])
+layer_number = [0,4,9,11]
 
 #Create representation lists from sequence outputs and take 101 in each
 from sklearn.manifold import TSNE
-representation_list = [sequence_outputs[0].squeeze().detach().numpy(),sequence_outputs[4].squeeze().detach().numpy(),sequence_outputs[9].squeeze().detach().numpy(),sequence_outputs[11].squeeze().detach().numpy()] 
+representation_list = []
+for i in range(len(layer_number)):
+    representation_list.append(sequence_outputs[i].squeeze().detach().numpy()) 
 #add to representation list to get more sequence outputs
-
-tokens = tokens[:101]
-category_list = category_list[:101]
-for i in range(len(representation_list)):
-  representation_list[i] = representation_list[i][:101]
 
 #Create maps to define values in tSNE plots
 
@@ -158,10 +160,7 @@ for j in range(len(representation_list)):
    
   answer_span_legend = mlines.Line2D([0], [0], marker='o', color='w', label='answer span',markerfacecolor='r', markersize=15)
   CLS_SEP_legend = mlines.Line2D([0], [0], marker='s', color='w', label='CLS/SEP',markerfacecolor='black', markersize=13)
-  query_words_legend = mlines.Line2D([0], [0], marker='v', color='w', label='query words',markerfacecolor='g', markersize=13)
-  contextual_words_legend = mlines.Line2D([0], [0], marker='X', color='w', label='contextual words',markerfacecolor='magenta', markersize=15)
-  plt.legend(loc= 'upper right', handles=[answer_span_legend,CLS_SEP_legend,query_words_legend,contextual_words_legend])
-  layer_number = [0,4,9,11]
+  
   plt.title('tSNE model for Question {} and Layer {}'.format(rand_question,layer_number[j]),fontsize = 18)
   plt.show()
-  plt.savefig(f"tSNE.png")
+  plt.savefig(f"tSNE_{j}.jpg".format(layer_number[j])}
