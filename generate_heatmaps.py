@@ -154,7 +154,7 @@ plt.rcParams["axes.edgecolor"] = "0.15"
 plt.rcParams["axes.linewidth"] = 1.25
 ## Retained Heatmap
 ax = sns.heatmap(
-    np.mean(retained_hmap, axis=0)[:12, :12],
+    np.mean(retained_hmap, axis=0)[:13, :13],
     cmap="Blues",
     vmin=0,
     vmax=1,
@@ -165,9 +165,9 @@ ax = sns.heatmap(
     annot_kws={"fontweight": "black", "color": "black"},
 )
 ax.axhline(y=0, color="k", linewidth=2)
-ax.axhline(y=12, color="k", linewidth=2)
+ax.axhline(y=13, color="k", linewidth=2)
 ax.axvline(x=0, color="k", linewidth=2)
-ax.axvline(x=12, color="k", linewidth=2)
+ax.axvline(x=13, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Retained")
@@ -183,7 +183,7 @@ with open(f"Retained Map {args.name} {args.topk}", "wb") as f:
 plt.clf()
 ## Retained Heatmap
 ax = sns.heatmap(
-    np.mean(removed_hmap, axis=0)[:12, :12],
+    np.mean(removed_hmap, axis=0)[:13, :13],
     cmap="Blues",
     vmin=0,
     vmax=1,
@@ -194,9 +194,9 @@ ax = sns.heatmap(
     annot_kws={"fontweight": "black", "color": "black"},
 )
 ax.axhline(y=0, color="k", linewidth=2)
-ax.axhline(y=12, color="k", linewidth=2)
+ax.axhline(y=13, color="k", linewidth=2)
 ax.axvline(x=0, color="k", linewidth=2)
-ax.axvline(x=12, color="k", linewidth=2)
+ax.axvline(x=13, color="k", linewidth=2)
 fig = plt.gcf()
 fig.set_size_inches(8, 8)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Removed")
