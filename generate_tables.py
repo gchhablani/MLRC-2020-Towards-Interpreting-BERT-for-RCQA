@@ -135,8 +135,7 @@ for sample in word_importances:
             elif categories[index] == "contextual_words":
                 contextual_count += 1
             elif categories[index] == "contextual_and_query":
-                contextual_count += 1
-                query_count += 1
+                query_count += 1  ##Increase only query count
         layer_wise_percentages[layer_idx]["answers"] += answer_count / args.topk
         layer_wise_percentages[layer_idx]["contextual_words"] += (
             contextual_count / args.topk
