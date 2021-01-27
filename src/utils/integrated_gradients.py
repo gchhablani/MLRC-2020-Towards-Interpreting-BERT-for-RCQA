@@ -618,9 +618,7 @@ class BertIntegratedGradients:
                 and token importance tuples.
         """
 
-        samples = Dataset.from_dict(
-            self.dataset.map(self.process_examples, batched=True)
-        )
+        samples = self.dataset.map(self.process_examples, batched=True)
 
         # columns = [
         #     "input_ids",
