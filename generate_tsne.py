@@ -39,7 +39,6 @@ sample_idx = np.random.randint(0, len(predictions))
 
 sample = predictions.iloc[sample_idx]
 
-
 tokenizer = BertTokenizer.from_pretrained(train_config.trainer.save_model_name)
 bert_model = BertForQuestionAnswering.from_pretrained(
     train_config.trainer.save_model_name
@@ -56,7 +55,6 @@ end_positions = sample["end_index"]
 tokens = tokenizer.convert_ids_to_tokens(sample["input_ids"])
 
 category_list = ["background" for i in range(len(tokens))]
-# tokens.index('[CLS]')
 category_list[tokens.index("[CLS]")] = "[CLS]/[SEP]"
 sep_indices = [i for i in range(len(tokens)) if tokens[i] == "[SEP]"]
 for index in sep_indices:
@@ -64,7 +62,7 @@ for index in sep_indices:
 
 question_tokens = []
 for i in range(tokens.index("[CLS]") + 1, tokens.index("[SEP]")):
-    # category_list[i] = 'question_words'
+    # category_list[i] = 'question_words' ## No Need so not saving.
     question_tokens.append(tokens[i])
 
 for i in range(start_positions, end_positions + 1):
@@ -95,6 +93,24 @@ while (
 for i in range(sentence_start_index + 1, sentence_end_index):
     if category_list[i] != "answer span":
         category_list[i] = "contextual words"
+
+## Get only those which are within the passage
+
+actual_start = sep_indices[0]
+actual_end = sep_indices[-1]
+category_list = category_list[actual_start + 1 : actual_end]
+tokens = tokens[actual_start + 1 : actual_end]
+
+layer_number = [1, 4, 9, 11]
+
+representation_list = []
+for i in range(len(layer_number)):
+    representation_list.append(
+        sequence_outputs[layer_number[i]]
+        .squeeze()
+        .detach()
+        .numpy()[actual_start + 1 : actual_end]
+    )
 
 # Defining legend
 answer_span_legend = mlines.Line2D(
@@ -143,21 +159,13 @@ plt.legend(
         contextual_words_legend,
     ],
 )
-layer_number = [0, 4, 9, 11]
-
-
-representation_list = []
-for i in range(len(layer_number)):
-    representation_list.append(
-        sequence_outputs[layer_number[i]].squeeze().detach().numpy()
-    )
 
 
 # Create maps to define values in tSNE plots
 
 color_map = {
     "answer span": "red",
-    "query_words": "green",
+    "query words": "green",
     "contextual words": "magenta",
     "[CLS]/[SEP]": "black",
     "background": "gray",
@@ -166,7 +174,7 @@ color_map = {
 # opacity map
 opacity_map = {
     "answer span": 1,
-    "query_words": 1,
+    "query words": 1,
     "contextual words": 1,
     "[CLS]/[SEP]": 1,
     "background": 0.3,
@@ -175,7 +183,7 @@ opacity_map = {
 # size map
 size_map = {
     "answer span": 80,
-    "query_words": 70,
+    "query words": 15,
     "contextual words": 50,
     "[CLS]/[SEP]": 60,
     "background": 40,
@@ -184,7 +192,7 @@ size_map = {
 # shape map
 marker_map = {
     "answer span": "o",
-    "query_words": "v",
+    "query words": "v",
     "contextual words": "X",
     "[CLS]/[SEP]": "s",
     "background": "s",
@@ -192,7 +200,7 @@ marker_map = {
 
 fontsize_map = {
     "answer span": 12,
-    "query_words": 12,
+    "query words": 12,
     "contextual words": 12,
     "[CLS]/[SEP]": 12,
     "background": 7,
@@ -254,8 +262,9 @@ for j in range(len(representation_list)):
     )
 
     plt.title(
-        "tSNE model for Question {} and Layer {}".format(sample_idx, layer_number[j]),
+        "t-SNE representation for Question {} and Layer {}".format(
+            sample_idx, layer_number[j]
+        ),
         fontsize=18,
     )
-    plt.show()
     plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.jpg")
