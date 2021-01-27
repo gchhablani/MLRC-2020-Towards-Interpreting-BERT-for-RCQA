@@ -96,69 +96,17 @@ for i in range(sentence_start_index + 1, sentence_end_index):
 
 ## Get only those which are within the passage
 
-actual_start = sep_indices[0]
 actual_end = sep_indices[-1]
-category_list = category_list[actual_start + 1 : actual_end]
-tokens = tokens[actual_start + 1 : actual_end]
+category_list = category_list[:actual_end]
+tokens = tokens[:actual_end]
 
 layer_number = [1, 4, 9, 11]
 
 representation_list = []
 for i in range(len(layer_number)):
     representation_list.append(
-        sequence_outputs[layer_number[i]]
-        .squeeze()
-        .detach()
-        .numpy()[actual_start + 1 : actual_end]
+        sequence_outputs[layer_number[i]].squeeze().detach().numpy()[:actual_end]
     )
-
-# Defining legend
-answer_span_legend = mlines.Line2D(
-    [0],
-    [0],
-    marker="o",
-    color="w",
-    label="answer span",
-    markerfacecolor="r",
-    markersize=15,
-)
-cls_sep_legend = mlines.Line2D(
-    [0],
-    [0],
-    marker="s",
-    color="w",
-    label="CLS/SEP",
-    markerfacecolor="black",
-    markersize=13,
-)
-
-query_words_legend = mlines.Line2D(
-    [0],
-    [0],
-    marker="v",
-    color="w",
-    label="query words",
-    markerfacecolor="g",
-    markersize=13,
-)
-contextual_words_legend = mlines.Line2D(
-    [0],
-    [0],
-    marker="X",
-    color="w",
-    label="contextual words",
-    markerfacecolor="magenta",
-    markersize=15,
-)
-plt.legend(
-    loc="upper right",
-    handles=[
-        answer_span_legend,
-        cls_sep_legend,
-        query_words_legend,
-        contextual_words_legend,
-    ],
-)
 
 
 # Create maps to define values in tSNE plots
@@ -177,15 +125,15 @@ opacity_map = {
     "query words": 1,
     "contextual words": 1,
     "[CLS]/[SEP]": 1,
-    "background": 0.3,
+    "background": 0.2,
 }
 
 # size map
 size_map = {
-    "answer span": 80,
-    "query words": 15,
-    "contextual words": 50,
-    "[CLS]/[SEP]": 60,
+    "answer span": 70,
+    "query words": 40,
+    "contextual words": 40,
+    "[CLS]/[SEP]": 40,
     "background": 40,
 }
 
@@ -193,7 +141,7 @@ size_map = {
 marker_map = {
     "answer span": "o",
     "query words": "v",
-    "contextual words": "X",
+    "contextual words": "x",
     "[CLS]/[SEP]": "s",
     "background": "s",
 }
@@ -221,6 +169,7 @@ for i in range(len(representation_list)):
     X_embeddings.append(X)
 
 for j in range(len(representation_list)):
+    fig, ax = plt.subplots()
     for i, token in enumerate(tokens):
         plt.scatter(
             X_embeddings[j][:, 0][i],
@@ -238,10 +187,9 @@ for j in range(len(representation_list)):
             fontsize=fontsize_list[i],
             alpha=alpha_list[i],
         )
-
-    fig = plt.gcf()
     fig.set_size_inches(8, 8)
 
+    # Defining legend
     answer_span_legend = mlines.Line2D(
         [0],
         [0],
@@ -251,7 +199,7 @@ for j in range(len(representation_list)):
         markerfacecolor="r",
         markersize=15,
     )
-    CLS_SEP_legend = mlines.Line2D(
+    cls_sep_legend = mlines.Line2D(
         [0],
         [0],
         marker="s",
@@ -259,6 +207,34 @@ for j in range(len(representation_list)):
         label="CLS/SEP",
         markerfacecolor="black",
         markersize=13,
+    )
+
+    query_words_legend = mlines.Line2D(
+        [0],
+        [0],
+        marker="v",
+        color="w",
+        label="query words",
+        markerfacecolor="g",
+        markersize=13,
+    )
+    contextual_words_legend = mlines.Line2D(
+        [0],
+        [0],
+        marker="X",
+        color="w",
+        label="contextual words",
+        markerfacecolor="magenta",
+        markersize=15,
+    )
+    plt.legend(
+        loc="upper right",
+        handles=[
+            answer_span_legend,
+            cls_sep_legend,
+            query_words_legend,
+            contextual_words_legend,
+        ],
     )
 
     plt.title(
