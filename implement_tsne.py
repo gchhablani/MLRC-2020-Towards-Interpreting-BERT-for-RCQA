@@ -6,41 +6,32 @@ import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 import random
 from src.datasets import SQuAD, DuoRCModified
 from transformers import BertTokenizer, BertForQuestionAnswering
 from omegaconf import OmegaConf
 import torch
 import numpy as np
-from src.utils.viz import format_word_colors
-from src.utils.integrated_gradients import BertIntegratedGradients
 from src.utils.mapper import configmapper
-
+from src.utils.viz import format_word_colors
+from src.utils.viz import format_word_importances
+from sklearn.manifold import TSNE
 
 parser = argparse.ArgumentParser(
     prog="implement_tsne.py",
     description="Implement tSNE in sklearn to qualitatively analyse words.",
 )
 
-big = BertIntegratedGradients(conf,squad,model_checkpoint)
-
 #Processing words and tokens
-rand_question = random.randint(1,30)
-#print(rand_question)
-
-sample_importances = big.get_random_samples_and_importances_across_all_layers(n_samples= 2)   #number of samples
-
-sample,word_importances, token_importances = sample_importances
-
-for j in range(12):
-    words,word_importance, category = word_importances[0][j]
-    html = format_word_importances(words,word_importance)
-    #display(html)
-
+seed = np.random.randint(1,10000000)
+np.random.seed(seed)
+sample_x = np.random.randint(1,10)
 
 tokenized_trains, tokenized_val = squad.get_datasets()
-validation_sample = tokenized_trains["validation"][rand_question]   #question number
-prediction_sample = tokenized_val[rand_question]                    #question number 
+validation_sample = tokenized_trains["validation"][sample_x]   #question number
+prediction_sample = tokenized_val[sample_x]                    #question number 
 example = squad.datasets["validation"][np.array(squad.datasets["validation"]["id"])==[prediction_sample["example_id"]]]
 
 tokenizer  = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -83,20 +74,18 @@ for i in range(sentence_start_index+1, sentence_end_index):
     if category_list[i]!='answer span':
         category_list[i]='contextual words'
 
+#Defining legend
+query_words_legend = mlines.Line2D([0], [0], marker='v', color='w', label='query words',markerfacecolor='g', markersize=13)
+contextual_words_legend = mlines.Line2D([0], [0], marker='X', color='w', label='contextual words',markerfacecolor='magenta', markersize=15)
+plt.legend(loc= 'upper right', handles=[answer_span_legend,CLS_SEP_legend,query_words_legend,contextual_words_legend])
+layer_number = [0,4,9,11]
 
-#Create representation lists from sequence outputs and take 101 in each
+#Create representation lists from sequence outputs 
 from sklearn.manifold import TSNE
-representation_list_a = sequence_outputs[0].squeeze().detach().numpy()
-representation_list_b = sequence_outputs[4].squeeze().detach().numpy()
-representation_list_c = sequence_outputs[9].squeeze().detach().numpy()
-representation_list_d = sequence_outputs[11].squeeze().detach().numpy()
+representation_list = []
+for i in range(len(layer_number)):
+    representation_list.append(sequence_outputs[i].squeeze().detach().numpy()) 
 
-tokens = tokens[:101]
-category_list = category_list[:101]
-representation_list_a = representation_list_a[:101]
-representation_list_b = representation_list_b[:101]
-representation_list_c = representation_list_c[:101]
-representation_list_d = representation_list_d[:101]
 
 #Create maps to define values in tSNE plots
 
@@ -149,22 +138,18 @@ fontsize_list = list(map(fontsize_map.get,category_list))
 alpha_list = list(map(opacity_map.get,category_list))
 marker_list = list(map(marker_map.get,category_list))
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
+X_list = []
+for i in range(len(representation_list)):
+  X_list.append(representation_list[i])
 
-#fig, axs = plt.subplots(2,2)
-#index = [[0,0],[0,1],[1,0],[1,1]]
-from sklearn.manifold import TSNE
-X_list = [representation_list_a,representation_list_b,representation_list_c,representation_list_d]
 X_embeddings = []
-for i in range(4):
+for i in range(len(representation_list)):
   X = TSNE(n_components=2,init='pca',n_iter = 10000).fit_transform(X_list[i])
   X_embeddings.append(X)
   X_embeddings[i].shape
 
 
-for j in range(4):
+for j in range(len(representation_list)):
   for i,token in enumerate(tokens):
     plt.scatter(X_embeddings[j][:,0][i], X_embeddings[j][:,1][i], marker=marker_list[i], color=color_list[i],s=size_list[i],alpha=alpha_list[i],linewidths=3)
     plt.text(X_embeddings[j][:,0][i]+.03, X_embeddings[j][:,1][i]+.03, token, fontsize=fontsize_list[i],alpha=alpha_list[i])
@@ -175,10 +160,7 @@ for j in range(4):
    
   answer_span_legend = mlines.Line2D([0], [0], marker='o', color='w', label='answer span',markerfacecolor='r', markersize=15)
   CLS_SEP_legend = mlines.Line2D([0], [0], marker='s', color='w', label='CLS/SEP',markerfacecolor='black', markersize=13)
-  query_words_legend = mlines.Line2D([0], [0], marker='v', color='w', label='query words',markerfacecolor='g', markersize=13)
-  contextual_words_legend = mlines.Line2D([0], [0], marker='X', color='w', label='contextual words',markerfacecolor='magenta', markersize=15)
-  plt.legend(loc= 'upper right', handles=[answer_span_legend,CLS_SEP_legend,query_words_legend,contextual_words_legend])
-  layer_number = [0,4,9,11]
+  
   plt.title('tSNE model for Question {} and Layer {}'.format(rand_question,layer_number[j]),fontsize = 18)
   plt.show()
-  plt.savefig(f"tSNE.png")
+  plt.savefig(f"tSNE_{j}.jpg".format(layer_number[j])}
