@@ -35,6 +35,22 @@ parser.add_argument(
     required=True,
 )
 
+parser.add_argument(
+    "--topk",
+    type=int,
+    action="store",
+    help="The number of words to be chosen.",
+    required=True,
+)
+
+parser.add_argument(
+    "--window",
+    type=int,
+    action="store",
+    help="The window size around answers to be considered.",
+    required=True,
+)
+
 args = parser.parse_args()
 with open(args.path, "rb") as f:
     word_importances = pkl.load(f)
@@ -73,7 +89,7 @@ def mark_categories(word_list, category_list):
     if answer_indices:
         for k in range(
             answer_indices[0] - 1,
-            min(answer_indices[0] - 6, len(question_words) - 1),
+            min(answer_indices[0] - (args.window + 1), len(question_words) - 1),
             -1,
         ):
             if category_list[k] == "query_words":
@@ -82,7 +98,8 @@ def mark_categories(word_list, category_list):
             else:
                 category_list[k] = "contextual_words"
         for l in range(
-            answer_indices[-1] + 1, min(answer_indices[-1] + 6, len(word_list))
+            answer_indices[-1] + 1,
+            min(answer_indices[-1] + (args.window + 1), len(word_list)),
         ):
             if category_list[l] == "query_words":
                 category_list[l] = "contextual_and_query"
@@ -103,14 +120,14 @@ for sample in word_importances:
         importances = layers[1]
         categories = layers[2]
         categories, new_index = mark_categories(words, categories)
-        words = words[new_index:]
+        words = words[new_index:]  ## Choose only context words
         importances = importances[new_index:]
         categories = categories[new_index:]
-        top_5_indices = importances.argsort()[-5:]
+        top_k_indices = importances.argsort()[-args.topk :]
         answer_count = 0
         query_count = 0
         contextual_count = 0
-        for index in top_5_indices:
+        for index in top_k_indices:
             if categories[index] == "answer":
                 answer_count += 1
             elif categories[index] == "query_words":
@@ -118,18 +135,20 @@ for sample in word_importances:
             elif categories[index] == "contextual_words":
                 contextual_count += 1
             elif categories[index] == "contextual_and_query":
-                # contextual_count += 1
+                contextual_count += 1
                 query_count += 1
-        layer_wise_percentages[layer_idx]["answers"] += answer_count / 5
-        layer_wise_percentages[layer_idx]["contextual_words"] += contextual_count / 5
-        layer_wise_percentages[layer_idx]["query_words"] += query_count / 5
+        layer_wise_percentages[layer_idx]["answers"] += answer_count / args.topk
+        layer_wise_percentages[layer_idx]["contextual_words"] += (
+            contextual_count / args.topk
+        )
+        layer_wise_percentages[layer_idx]["query_words"] += query_count / args.topk
 
 for layer_wise_percentage in layer_wise_percentages:
-    layer_wise_percentage["answers"] /= 10
-    layer_wise_percentage["query_words"] /= 10
-    layer_wise_percentage["contextual_words"] /= 10
+    layer_wise_percentage["answers"] *= 100 / len(word_importances)
+    layer_wise_percentage["query_words"] *= 100 / len(word_importances)
+    layer_wise_percentage["contextual_words"] *= 100 / len(word_importances)
 
-with open(f"A_Q_C {args.name} Table.txt", "w") as f:
+with open(f"A_Q_C {args.name} {args.topk} {args.window} Table.txt", "w") as f:
     pd.DataFrame(layer_wise_percentages).to_latex(f, index=False)
 
 pos_percentages = [
@@ -164,7 +183,7 @@ for sample_idx, sample in enumerate(word_importances):
         #     if category == "context":  ## Should this include questions?
         #         context_count += 1
 
-        top_5_indices = importances.argsort()[-5:]
+        top_k_indices = importances.argsort()[-5:]
         noun_count = 0
         adj_count = 0
         verb_count = 0
@@ -172,7 +191,7 @@ for sample_idx, sample in enumerate(word_importances):
         stw_count = 0
         punc_count = 0
         answer_count = 0
-        for index in top_5_indices:
+        for index in top_k_indices:
             if words[index] != "":
                 if categories[index] == "answer":
                     answer_count += 1
@@ -190,17 +209,19 @@ for sample_idx, sample in enumerate(word_importances):
                 if words[index].lower() in stopwords:
                     stw_count += 1
 
-        pos_percentages[layer_idx]["% words in answer span"] += answer_count / 5
-        pos_percentages[layer_idx]["% adjectives"] += adj_count / 5
-        pos_percentages[layer_idx]["% adverbs"] += adv_count / 5
-        pos_percentages[layer_idx]["% common/proper/cardinal nouns"] += noun_count / 5
-        pos_percentages[layer_idx]["% punct marks"] += punc_count / 5
-        pos_percentages[layer_idx]["% stop words"] += stw_count / 5
-        pos_percentages[layer_idx]["% verbs"] += verb_count / 5
+        pos_percentages[layer_idx]["% words in answer span"] += answer_count / args.topk
+        pos_percentages[layer_idx]["% adjectives"] += adj_count / args.topk
+        pos_percentages[layer_idx]["% adverbs"] += adv_count / args.topk
+        pos_percentages[layer_idx]["% common/proper/cardinal nouns"] += (
+            noun_count / args.topk
+        )
+        pos_percentages[layer_idx]["% punct marks"] += punc_count / args.topk
+        pos_percentages[layer_idx]["% stop words"] += stw_count / args.topk
+        pos_percentages[layer_idx]["% verbs"] += verb_count / args.topk
 
 for pos_percentage in pos_percentages:
     for key in pos_percentage.keys():
-        pos_percentage[key] /= 10
+        pos_percentage[key] *= 100 / len(word_importances)
 
-with open(f"POS {args.name} Table.txt", "w") as f:
+with open(f"POS {args.name} {args.topk} {args.window} Table.txt", "w") as f:
     pd.DataFrame(pos_percentages).to_latex(f, index=False)
