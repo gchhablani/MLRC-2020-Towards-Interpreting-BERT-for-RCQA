@@ -15,6 +15,7 @@ import json
 import pickle as pkl
 
 from datasets import load_metric
+import numpy as np
 from omegaconf import OmegaConf
 
 import torch
@@ -34,11 +35,11 @@ from src.utils.misc import seed
 
 class MyEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, numpy.integer):
+        if isinstance(obj, np.integer):
             return int(obj)
-        elif isinstance(obj, numpy.floating):
+        elif isinstance(obj, np.floating):
             return float(obj)
-        elif isinstance(obj, numpy.ndarray):
+        elif isinstance(obj, np.ndarray):
             return obj.tolist()
         else:
             return super(MyEncoder, self).default(obj)
