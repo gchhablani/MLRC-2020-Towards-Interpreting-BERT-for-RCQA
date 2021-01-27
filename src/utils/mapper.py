@@ -39,7 +39,10 @@ class ConfigMapper:
 
     """
 
-    dicts = {"datasets": {}, "schedulers": {},}
+    dicts = {
+        "datasets": {},
+        "schedulers": {},
+    }
 
     @classmethod
     def map(cls, key, name):
