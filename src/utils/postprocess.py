@@ -149,10 +149,10 @@ def postprocess_qa_predictions(
                 ],
                 "context": example["context"],
                 "question": example["question"],
-                "start_positions": features[features_per_example[example_index][0]][
-                    "start_positions"
-                ],
-                "end_positions": features[features_per_example[example_index][0]][
+                "start_positions": validation_set[
+                    features_per_example[example_index][0]
+                ]["start_positions"],
+                "end_positions": validation_set[features_per_example[example_index][0]][
                     "end_positions"
                 ],
                 "example_id": example["id"],
@@ -184,12 +184,12 @@ def postprocess_qa_predictions(
                     ],
                     "context": example["context"],
                     "question": example["question"],
-                    "start_positions": features[features_per_example[example_index][0]][
-                        "start_positions"
-                    ],
-                    "end_positions": features[features_per_example[example_index][0]][
-                        "end_positions"
-                    ],
+                    "start_positions": validation_set[
+                        features_per_example[example_index][0]
+                    ]["start_positions"],
+                    "end_positions": validation_set[
+                        features_per_example[example_index][0]
+                    ]["end_positions"],
                     "example_id": example["id"],
                     "offset_mapping": features[features_per_example[example_index][0]][
                         "offset_mapping"
