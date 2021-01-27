@@ -162,7 +162,7 @@ final_predictions = postprocess_qa_predictions(
     training_datasets["validation"],
     raw_predictions.predictions,
     tokenizer,
-    squad_v2=False,
+    squad_v2=train_config.misc.squad_v2,
 )
 
 with open(train_config.misc.final_predictions_file, "w") as f:
