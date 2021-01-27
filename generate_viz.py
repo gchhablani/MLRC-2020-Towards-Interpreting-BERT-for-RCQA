@@ -39,14 +39,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--topk",
-    type=str,
+    type=int,
     action="store",
     help="The total number of words to be highlighted.",
     required=True,
 )
 
 args = parser.parse_args()
-with open(os.path.join(args.path, "word_importances"), "rb") as f:
+with open(os.path.join(args.path), "rb") as f:
     word_importances = pkl.load(f)
 
 # print(word_importances)
@@ -55,7 +55,7 @@ seed = np.random.randint(1, 1000000)
 print(seed)
 np.random.seed(seed)  # 719477
 sample_idx = np.random.randint(0, len(word_importances))
-layers_to_plot = [0, 1, 2, 9, 10, 11]
+layers_to_plot = [0, 1, 2, 3, 9, 10, 11, 12]
 
 question_words = []
 answer_words = []
