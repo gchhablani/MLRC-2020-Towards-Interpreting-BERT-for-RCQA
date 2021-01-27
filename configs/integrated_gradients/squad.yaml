@@ -5,5 +5,5 @@ n_steps: 25
 method: "riemann_right"
 internal_batch_size: 4
 n_samples: 1000
-store_dir: "/content/drive/My Drive/MLR/v1_style/squad/IG/"
-predictions_path: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad"
+store_dir: "/content/drive/My Drive/MLR/v1_style/squad/IGv2/"
+predictions_path: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad_final_predictions.json"

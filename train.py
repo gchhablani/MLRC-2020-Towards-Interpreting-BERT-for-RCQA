@@ -31,6 +31,19 @@ from src.datasets import SQuAD, DuoRC, DuoRCModified
 from src.utils.mapper import configmapper
 from src.utils.misc import seed
 
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        elif isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
+
 dirname = os.path.dirname(__file__)
 ## Config
 parser = argparse.ArgumentParser(
@@ -151,8 +164,14 @@ final_predictions = postprocess_qa_predictions(
     squad_v2=train_config.misc.squad_v2,
 )
 
-with open(train_config.misc.final_predictions_file, "wb") as f:
-    pkl.dump(final_predictions, f)
+with open(train_config.misc.final_predictions_file, "w") as f:
+    f.write("[")
+    for i, item in enumerate(list(final_predictions.values())):
+        json.dump(item, f, cls=MyEncoder)
+        if i != len(list(final_predictions.values())) - 1:
+            f.write(",")
+    f.write("]")
+    # pkl.dump(final_predictions, f)
 
 # Metric Calculation
 print("### Calculating Metrics ###")

@@ -25,4 +25,4 @@ misc:
   squad_v2: true
   raw_predictions_file: "/content/drive/My Drive/MLR/v1_style/duorc_modified/preds/duorc_raw"
   metric_file: "/content/drive/My Drive/MLR/v1_style/duorc_modified/preds/duorc.json"
-  final_predictions_file: "/content/drive/My Drive/MLR/v1_style/duorc_modified/preds/duorc"
+  final_predictions_file: "/content/drive/My Drive/MLR/v1_style/duorc_modified/preds/duorc_final_predictions.json"

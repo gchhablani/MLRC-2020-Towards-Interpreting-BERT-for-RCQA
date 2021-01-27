@@ -25,4 +25,4 @@ misc:
   squad_v2: true
   raw_predictions_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad_raw"
   metric_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad.json"
-  final_predictions_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad"
+  final_predictions_file: "/content/drive/My Drive/MLR/v2_style/squad/preds/squad_final_predictions.json"
