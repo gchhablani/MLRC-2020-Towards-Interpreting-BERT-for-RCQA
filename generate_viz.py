@@ -27,7 +27,7 @@ parser.add_argument(
     "--path",
     type=str,
     action="store",
-    help="The path for word importances binary files.",
+    help="The path for word importances binary file.",
     required=True,
 )
 parser.add_argument(
