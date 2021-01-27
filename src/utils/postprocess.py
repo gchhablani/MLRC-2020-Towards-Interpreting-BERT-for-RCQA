@@ -139,17 +139,29 @@ def postprocess_qa_predictions(
             best_answer = {
                 "text": "",
                 "score": 0.0,
-                "start_index": None,
-                "end_index": None,
-                "input_ids": None,
-                "token_type_ids": None,
+                "start_index": 0,
+                "end_index": 0,
+                "input_ids": features[features_per_example[example_index][0]][
+                    "input_ids"
+                ],
+                "token_type_ids": features[features_per_example[example_index][0]][
+                    "token_type_ids"
+                ],
                 "context": example["context"],
                 "question": example["question"],
-                "start_positions": None,
-                "end_positions": None,
+                "start_positions": features[features_per_example[example_index][0]][
+                    "start_positions"
+                ],
+                "end_positions": features[features_per_example[example_index][0]][
+                    "end_positions"
+                ],
                 "example_id": example["id"],
-                "offset_mapping": None,
-                "attention_mask": None,
+                "offset_mapping": features[features_per_example[example_index][0]][
+                    "offset_mapping"
+                ],
+                "attention_mask": features[features_per_example[example_index][0]][
+                    "attention_mask"
+                ],
             }
 
         # Let's pick our final answer: the best one or the null answer (only for squad_v2)
@@ -162,17 +174,29 @@ def postprocess_qa_predictions(
                 else {
                     "text": "",
                     "score": 0.0,
-                    "start_index": None,
-                    "end_index": None,
-                    "input_ids": None,
-                    "token_type_ids": None,
+                    "start_index": 0,
+                    "end_index": 0,
+                    "input_ids": features[features_per_example[example_index][0]][
+                        "input_ids"
+                    ],
+                    "token_type_ids": features[features_per_example[example_index][0]][
+                        "token_type_ids"
+                    ],
                     "context": example["context"],
                     "question": example["question"],
-                    "start_positions": None,
-                    "end_positions": None,
+                    "start_positions": features[features_per_example[example_index][0]][
+                        "start_positions"
+                    ],
+                    "end_positions": features[features_per_example[example_index][0]][
+                        "end_positions"
+                    ],
                     "example_id": example["id"],
-                    "offset_mapping": None,
-                    "attention_mask": None,
+                    "offset_mapping": features[features_per_example[example_index][0]][
+                        "offset_mapping"
+                    ],
+                    "attention_mask": features[features_per_example[example_index][0]][
+                        "attention_mask"
+                    ],
                 }
             )
             predictions[example["id"]] = answer
