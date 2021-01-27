@@ -12,7 +12,6 @@ Usage:
 
 """
 
-
 import os
 import re
 import argparse
@@ -20,16 +19,24 @@ import json
 import pickle as pkl
 from omegaconf import OmegaConf
 import pandas as pd
-
+import torch
 from datasets import Dataset, load_metric
 import nltk
 import numpy as np
 import scipy.special
 
+
 nltk.download("averaged_perceptron_tagger")
 
-# from src.datasets import SQuAD, DuoRCModified
-from src.utils.postprocess import postprocess_qa_predictions
+from transformers import (
+    AutoModelForQuestionAnswering,
+    AutoTokenizer,
+    default_data_collator,
+    TrainingArguments,
+    Trainer,
+)
+
+from src.datasets import SQuAD, DuoRCModified
 from src.utils.mapper import configmapper
 from src.utils.misc import seed
 
@@ -67,6 +74,7 @@ print("### Loading Predictions ###")
 predictions = Dataset.from_pandas(
     pd.read_json(train_config.misc.final_predictions_file)
 )
+
 
 # Filtering the IDs
 quantifier_ids = []
@@ -110,34 +118,103 @@ nonquantifier_original = Dataset.from_dict(
     dataset.datasets["validation"][nonquantifier_ids]
 )
 
-print("### Taking Predictions ###")
-quantifier_predictions = predictions[quantifier_ids]  ## has predictions,label_ids,
+
+print("### Getting Training Args from PreTrained ###")
+train_args = torch.load(
+    os.path.join(train_config.trainer.save_model_name, "training_args.bin")
+)
+print(train_args)
+
+print("### Loading Tokenizer for Trainer from PreTrained ")
+tokenizer = AutoTokenizer.from_pretrained(train_config.trainer.save_model_name)
+
+print("### Loading Model From PreTrained ###")
+model = AutoModelForQuestionAnswering.from_pretrained(
+    train_config.trainer.save_model_name
+)
+
+print("### Loading Trainer ###")
+trainer = Trainer(
+    model,
+    train_args,
+    default_data_collator,
+    train_datasets["train"],
+    train_datasets["validation"],
+    tokenizer,
+)
+
+quantifier_dataset = Dataset.from_dict(predictions[quantifier_ids])
+quantifier_numerical_dataset = Dataset.from_dict(predictions[quantifier_numerical_ids])
+nonquantifier_dataset = Dataset.from_dict(predictions[nonquantifier_ids])
+
+
+print("### Predicting ###")
+quantifier_predictions = trainer.predict(quantifier_dataset)
+
 with open(train_config.misc.raw_predictions_file + "_quantifier", "wb") as f:
     pkl.dump(quantifier_predictions, f)
 
-quantifier_numerical_predictions = predictions[quantifier_numerical_ids]
+quantifier_numerical_predictions = trainer.predict(quantifier_numerical_dataset)
 with open(train_config.misc.raw_predictions_file + "_quantifier_numerical", "wb") as f:
     pkl.dump(quantifier_numerical_predictions, f)
 
-nonquantifier_predictions = predictions[
-    nonquantifier_ids
-]  ## has predictions,label_ids,
+nonquantifier_predictions = trainer.predict(nonquantifier_dataset)
+
 with open(train_config.misc.raw_predictions_file + "_nonquantifier", "wb") as f:
     pkl.dump(nonquantifier_predictions, f)
 
+# Set back features hidden by trainer during prediction.
+quantifier_dataset.set_format(
+    type=quantifier_dataset.format["type"],
+    columns=list(quantifier_dataset.features.keys()),
+)
+
+quantifier_numerical_dataset.set_format(
+    type=quantifier_numerical_dataset.format["type"],
+    columns=list(quantifier_numerical_dataset.features.keys()),
+)
+
+nonquantifier_dataset.set_format(
+    type=nonquantifier_dataset.format["type"],
+    columns=list(nonquantifier_dataset.features.keys()),
+)
+
+quantifier_start_logits, quantifier_end_logits = quantifier_predictions.predictions
+
+(
+    quantifier_numerical_start_logits,
+    quantifier_numerical_end_logits,
+) = quantifier_numerical_predictions.predictions
+
+(
+    nonquantifier_start_logits,
+    nonquantifier_end_logits,
+) = nonquantifier_predictions.predictions
+
+
 quantifier_confidence = np.mean(
-    [scipy.special.softmax(score) for score in quantifier_predictions["score"]]
+    np.max(
+        scipy.special.softmax(quantifier_start_logits + quantifier_end_logits, axis=-1),
+        axis=-1,
+    )
 )
 
 quantifier_numerical_confidence = np.mean(
-    [
-        scipy.special.softmax(score)
-        for score in quantifier_numerical_predictions["score"]
-    ]
+    np.max(
+        scipy.special.softmax(
+            quantifier_numerical_start_logits + quantifier_numerical_end_logits, axis=-1
+        ),
+        axis=-1,
+    )
 )
 
 nonquantifier_confidence = np.mean(
-    [scipy.special.softmax(score) for score in nonquantifier_predictions["score"]]
+    np.max(
+        scipy.special.softmax(
+            nonquantifier_start_logits + nonquantifier_end_logits, axis=-1
+        ),
+        axis=-1,
+    )
 )
 
 print(f"Quantifier Confidence: {quantifier_confidence}")
@@ -160,12 +237,12 @@ if train_config.misc.squad_v2:
             "prediction_text": prediction["text"],
             "no_answer_probability": 0.0,
         }
-        for prediction in quantifier_predictions
+        for prediction in quantifier_dataset
     ]
 else:
     formatted_quantifier_predictions = [
         {"id": prediction["example_id"], "prediction_text": prediction["text"]}
-        for prediction in quantifier_predictions
+        for prediction in quantifier_dataset
     ]
 references = [{"id": ex["id"], "answers": ex["answers"]} for ex in quantifier_original]
 metrics = metric.compute(
@@ -177,12 +254,6 @@ print("### Saving Metrics ###")
 with open(train_config.misc.metric_file.split(".")[0] + "_quantifier.json", "w") as f:
     json.dump(metrics, f)
 
-print("### Calculating Metrics ###")
-if train_config.misc.squad_v2:
-    metric = load_metric("squad_v2")
-else:
-    metric = load_metric("squad")
-
 if train_config.misc.squad_v2:
     formatted_quantifier_numerical_predictions = [
         {
@@ -190,12 +261,12 @@ if train_config.misc.squad_v2:
             "prediction_text": prediction["text"],
             "no_answer_probability": 0.0,
         }
-        for prediction in quantifier_numerical_predictions
+        for prediction in quantifier_numerical_dataset
     ]
 else:
     formatted_quantifier_numerical_predictions = [
         {"id": prediction["example_id"], "prediction_text": prediction["text"]}
-        for prediction in quantifier_numerical_predictions
+        for prediction in quantifier_numerical_dataset
     ]
 references = [
     {"id": ex["id"], "answers": ex["answers"]} for ex in quantifier_numerical_original
@@ -211,11 +282,6 @@ with open(
 ) as f:
     json.dump(metrics, f)
 
-print("### Calculating Metrics ###")
-if train_config.misc.squad_v2:
-    metric = load_metric("squad_v2")
-else:
-    metric = load_metric("squad")
 
 if train_config.misc.squad_v2:
     formatted_nonquantifier_predictions = [
@@ -224,7 +290,7 @@ if train_config.misc.squad_v2:
             "prediction_text": prediction["text"],
             "no_answer_probability": 0.0,
         }
-        for prediction in nonquantifier_predictions
+        for prediction in nonquantifier_dataset
     ]
 else:
     formatted_nonquantifier_predictions = [
@@ -232,7 +298,7 @@ else:
             "id": prediction["example_id"],
             "prediction_text": prediction["text"],
         }
-        for prediction in nonquantifier_predictions
+        for prediction in nonquantifier_dataset
     ]
 references = [
     {"id": ex["id"], "answers": ex["answers"]} for ex in nonquantifier_original
