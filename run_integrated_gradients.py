@@ -5,20 +5,19 @@ This script uses datasets, captum, omegaconf and transformers libraries.
 Please install them in order to run this script.
 
 Usage:
-    $python run_integrated_gradients.py --config ./configs/integrated_gradients/squad.yaml \
-        --dataset ./configs/datasets/squad/default.yaml
+    $python run_integrated_gradients.py --config ./configs/integrated_gradients/squad.yaml
 
 """
 import os
 import argparse
 import pickle as pkl
+import pandas as pd
 
 from omegaconf import OmegaConf
 
 # from transformers import BertTokenizer, BertForQuestionAnswering
 
 from src.utils.integrated_gradients import BertIntegratedGradients
-from src.utils.mapper import configmapper
 
 # from src.utils.misc import seed
 
@@ -38,12 +37,10 @@ parser.add_argument(
 
 args = parser.parse_args()
 ig_config = OmegaConf.load(args.config)
-dataset_config = OmegaConf.load(args.dataset)
 
 # Load dataset
 print("### Loading Dataset ###")
-with open(ig_config.predictions_path, "rb") as f:
-    predictions = pkl.load(f)
+predictions = pd.read_json(ig_config.predictions_path, "rb")
 
 # Initialize BertIntegratedGradients
 big = BertIntegratedGradients(ig_config, predictions)

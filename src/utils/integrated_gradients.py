@@ -57,10 +57,10 @@ class BertIntegratedGradients:
 
         Args:
             config (omegaconf.dictconfig.DictConfig): The configuration for integrated gradients.
-            predictions (dict): The prediction results from which samples are chosen.
+            predictions (pandas.DataFrame): The prediction results from which samples are chosen.
         """
         self.config = config
-        self.dataset = Dataset.from_dict(predictions)
+        self.dataset = Dataset.from_pandas(predictions)
 
         self.model = BertForQuestionAnswering.from_pretrained(
             self.config.model_checkpoint
@@ -108,18 +108,18 @@ class BertIntegratedGradients:
             dict: The dictionary containing all input_ids, token_type_ids, question, etc. for
                 all samples passed.
         """
-
-        for example_idx, example in enumerate(examples):
-            question = example["question"]
+        # print(examples["offset_mapping"])
+        for example_idx in range(len(examples["offset_mapping"])):
+            question = examples["question"][example_idx]
 
             question_offsets = self.tokenizer(question, return_offsets_mapping=True)[
                 "offset_mapping"
             ]
             for i, question_offset in enumerate(question_offsets):
-                example["offset_mapping"][
+                examples["offset_mapping"][example_idx][
                     i
                 ] = question_offset  # Mark question offsets too
-
+        # print(examples["offset_mapping"])
         return examples
 
     def get_output_up_to_layer(
@@ -582,6 +582,7 @@ class BertIntegratedGradients:
                 replace=False,
             )
         )
+        # print(random_indices)
         samples = Dataset.from_dict(
             self.dataset.map(self.process_examples, batched=True)[random_indices]
         )
@@ -594,31 +595,17 @@ class BertIntegratedGradients:
 
     def get_all_importances(
         self,
-        load_from_cache=True,
-        cache="/content/drive/My Drive/MLR/v1_style/cache/squad_id",
     ):
         """Get importance values for all samples across all layers.
-
-        Args:
-            load_from_cache (bool, optional): Whether to load processed examples
-                from a cache if found. Defaults to True.
-            cache (str, optional): The cache where processed examples are stored.
-                Defaults to "/content/drive/My Drive/MLR/squad_ig_processed_dataset".
 
         Returns:
             tuple: The tuple containing the samples, word importance tuples
                 and token importance tuples.
         """
 
-        if load_from_cache and os.path.exists(cache):
-            with open(cache, "rb") as in_file:
-                samples = pkl.load(in_file)
-        else:
-            samples = Dataset.from_dict(
-                self.dataset.map(self.process_examples, batched=True)
-            )
-            with open(cache, "wb") as out_file:
-                pkl.dump(samples, out_file)
+        samples = Dataset.from_dict(
+            self.dataset.map(self.process_examples, batched=True)
+        )
 
         # columns = [
         #     "input_ids",
