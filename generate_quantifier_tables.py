@@ -31,7 +31,15 @@ parser.add_argument(
     "--name",
     type=str,
     action="store",
-    help="The name of the dataset to be used while storing heatmaps.",
+    help="The name of the dataset to be used while storing table.",
+    required=True,
+)
+
+parser.add_argument(
+    "--topk",
+    type=int,
+    action="store",
+    help="The topk to be used for the table.",
     required=True,
 )
 
@@ -73,7 +81,7 @@ def mark_categories(word_list, category_list):
     if answer_indices:
         for k in range(
             answer_indices[0] - 1,
-            min(answer_indices[0] - 6, len(question_words) - 1),
+            min(answer_indices[0] - (args.topk + 1), len(question_words) - 1),
             -1,
         ):
             if category_list[k] == "query_words":
@@ -82,7 +90,8 @@ def mark_categories(word_list, category_list):
             else:
                 category_list[k] = "contextual_words"
         for l in range(
-            answer_indices[-1] + 1, min(answer_indices[-1] + 6, len(word_list))
+            answer_indices[-1] + 1,
+            min(answer_indices[-1] + (args.topk + 1), len(word_list)),
         ):
             if category_list[l] == "query_words":
                 category_list[l] = "contextual_and_query"
@@ -95,7 +104,7 @@ def mark_categories(word_list, category_list):
 num_layers = len(word_importances[0])
 num_percentages = [
     {
-        "% numerical/top-5": 0,
+        f"% numerical/top-{args.topk}": 0,
         "% numerical/all_numerical": 0,
     }
     for i in range(num_layers)
@@ -132,9 +141,9 @@ for sample_idx, sample in enumerate(word_importances):
                     except ValueError:
                         continue
 
-        top_5_indices = importances.argsort()[-5:]
+        top_k_indices = importances.argsort()[-args.topk :]
         numerical_top_count = 0
-        for index in top_5_indices:
+        for index in top_k_indices:
             if words[index] != "":
                 pos_tag = nltk.pos_tag([words[index]])[0][1]
                 if pos_tag.startswith("CD"):
@@ -150,7 +159,9 @@ for sample_idx, sample in enumerate(word_importances):
                         except ValueError:
                             continue
 
-        num_percentages[layer_idx]["% numerical/top-5"] += numerical_top_count / 5
+        num_percentages[layer_idx][f"% numerical/top-{args.topk}"] += (
+            numerical_top_count / args.topk
+        )
         if total_numerical_words != 0:
             num_percentages[layer_idx]["% numerical/all_numerical"] += (
                 numerical_top_count / total_numerical_words
@@ -159,7 +170,7 @@ for sample_idx, sample in enumerate(word_importances):
 
 for num_percentage in num_percentages:
     for key in num_percentage.keys():
-        num_percentage[key] *= 10 / len(word_importances)
+        num_percentage[key] *= 100 / len(word_importances)
 
-with open(f"POS {args.name} Quantifier Table.txt", "w") as f:
+with open(f"POS {args.name} {args.topk} Quantifier Table.txt", "w") as f:
     pd.DataFrame(num_percentages).to_latex(f, index=False)

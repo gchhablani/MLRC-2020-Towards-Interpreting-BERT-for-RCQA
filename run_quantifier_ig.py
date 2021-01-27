@@ -58,9 +58,9 @@ for i, example in enumerate(big.dataset):
         ##Some questions have typos
 
 
-quantifier_original = Dataset.from_dict(big.dataset[quantifier_ids])
+quantifier_preds = Dataset.from_dict(big.dataset[quantifier_ids])
 
-big.dataset = quantifier_original
+big.dataset = quantifier_preds
 
 print("### Running IG ###")
 (
