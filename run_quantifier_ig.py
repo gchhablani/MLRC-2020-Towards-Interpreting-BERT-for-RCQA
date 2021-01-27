@@ -43,7 +43,7 @@ dataset_config = OmegaConf.load(args.dataset)
 
 # Load dataset
 print("### Loading Dataset ###")
-predictions = pd.read_json(ig_config.predictions_path, "rb")
+predictions = pd.read_json(ig_config.predictions_path)
 
 # Initialize BertIntegratedGradients
 big = BertIntegratedGradients(ig_config, predictions)

@@ -514,7 +514,9 @@ class BertIntegratedGradients:
 
             overall_word_importances.append(layer_wise_word_importances)
             overall_token_importances.append(layer_wise_token_importances)
-
+        print("## Token Importances ##")
+        print(overall_token_importances)
+        print("## Word Importances ##")
         return {
             "word_importances": overall_word_importances,
             # batches,len of layers, batch_size, len of examples
@@ -535,11 +537,12 @@ class BertIntegratedGradients:
         num_batches = len(importances)
         num_layers = len(importances[0])
         batch_size = len(importances[0][0])
-
         # num_batches, num_layers, num_samples, 2 -> num_layers, num_samples*num_batches, 2
+
         num_samples = 0
         layer_wise = [[] for _ in range(num_layers)]
         for batch_idx in range(num_batches):
+            num_samples += len(importances[batch_idx][0])  ## First Layer
             for layer_idx in range(num_layers):
                 for sample_idx in range(
                     len(importances[batch_idx][layer_idx])
@@ -547,7 +550,6 @@ class BertIntegratedGradients:
                     layer_wise[layer_idx].append(
                         importances[batch_idx][layer_idx][sample_idx]
                     )
-                    num_samples += 1
 
         # num_layers, num_samples, 2 -> num_samples, num_layers, 2
         sample_wise = [[] for _ in range(num_samples)]
@@ -586,6 +588,8 @@ class BertIntegratedGradients:
         samples = Dataset.from_dict(
             self.dataset.map(self.process_examples, batched=True)[random_indices]
         )
+        print("## Samples ##")
+        print(samples)
 
         importances = self.get_importances_across_all_layers(samples)
         word_importances = self.rearrange_importances(importances["word_importances"])
