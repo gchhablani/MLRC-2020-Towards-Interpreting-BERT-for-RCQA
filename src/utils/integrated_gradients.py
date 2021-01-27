@@ -91,8 +91,8 @@ class BertIntegratedGradients:
         )
 
         return (
-            F.softmax(start_logits, dim=-1),
-            F.softmax(end_logits, dim=-1),
+            F.softmax(start_logits, dim=1),
+            F.softmax(end_logits, dim=1),
             sequence_output,
         )  ##Tuple of 13 tensors, each [batch_size, seq_length, hidden_size]
 
@@ -200,9 +200,9 @@ class BertIntegratedGradients:
             pred = self.model.qa_outputs(layer_input)
             start_logits, end_logits = pred.split(1, dim=-1)
             pred = (
-                F.softmax(start_logits, dim=-1)
+                F.softmax(start_logits, dim=1)
                 if position == "start"
-                else F.softmax(end_logits, dim=-1)
+                else F.softmax(end_logits, dim=1)
             )
             return pred.reshape(-1, hidden_states.size(-2))
 
@@ -461,6 +461,13 @@ class BertIntegratedGradients:
                 end_logits, dim=1
             )  # tensor of shape(batch_size,1)
 
+            # print(
+            #     "Max Start Logits: ",
+            #     max_start_logits,
+            #     "Max Eng Logits: ",
+            #     max_end_logits,
+            # )
+
             layer_wise_attributions = []
 
             for i in tqdm(range(len(sequence_outputs))):  # 0-> embeddings, 12->layer 12
@@ -514,9 +521,9 @@ class BertIntegratedGradients:
 
             overall_word_importances.append(layer_wise_word_importances)
             overall_token_importances.append(layer_wise_token_importances)
-        print("## Token Importances ##")
-        print(overall_token_importances)
-        print("## Word Importances ##")
+        # print("## Token Importances ##")
+        # print(overall_token_importances)
+        # print("## Word Importances ##")
         return {
             "word_importances": overall_word_importances,
             # batches,len of layers, batch_size, len of examples
@@ -585,6 +592,7 @@ class BertIntegratedGradients:
             )
         )
         # print(random_indices)
+        print("### Sampling ###")
         samples = Dataset.from_dict(
             self.dataset.map(self.process_examples, batched=True)[random_indices]
         )
@@ -595,6 +603,9 @@ class BertIntegratedGradients:
         word_importances = self.rearrange_importances(importances["word_importances"])
         token_importances = self.rearrange_importances(importances["token_importances"])
 
+        # print(len(word_importances))
+        # print(len(word_importances[0]))
+        # print(len(word_importances[0][0]))
         return samples, word_importances, token_importances
 
     def get_all_importances(
