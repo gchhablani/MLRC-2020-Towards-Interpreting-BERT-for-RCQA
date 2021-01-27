@@ -36,10 +36,8 @@ parser.add_argument(
     default=os.path.join(dirname, "./configs/integrated_gradients/squad.yaml"),
 )
 
-
 args = parser.parse_args()
 ig_config = OmegaConf.load(args.config)
-dataset_config = OmegaConf.load(args.dataset)
 
 # Load dataset
 print("### Loading Dataset ###")
