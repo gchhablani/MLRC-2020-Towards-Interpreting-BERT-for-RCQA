@@ -100,7 +100,7 @@ actual_end = sep_indices[-1]
 category_list = category_list[:actual_end]
 tokens = tokens[:actual_end]
 
-layer_number = [1, 4, 9, 11]
+layer_number = [1, 5, 10, 12]
 
 representation_list = []
 for i in range(len(layer_number)):
@@ -187,7 +187,7 @@ for j in range(len(representation_list)):
             fontsize=fontsize_list[i],
             alpha=alpha_list[i],
         )
-    fig.set_size_inches(8, 8)
+    fig.set_size_inches(5, 5)
 
     # Defining legend
     answer_span_legend = mlines.Line2D(
@@ -228,7 +228,7 @@ for j in range(len(representation_list)):
         markersize=15,
     )
     plt.legend(
-        loc="upper right",
+        loc="best",
         handles=[
             answer_span_legend,
             cls_sep_legend,
@@ -243,4 +243,4 @@ for j in range(len(representation_list)):
         ),
         fontsize=18,
     )
-    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.jpg")
+    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.jpg", dpi=400)
