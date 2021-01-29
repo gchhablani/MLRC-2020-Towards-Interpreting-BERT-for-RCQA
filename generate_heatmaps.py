@@ -162,16 +162,18 @@ ax = sns.heatmap(
     square=True,
     cbar=False,
     fmt=".2f",
-    annot_kws={"fontweight": "black", "color": "black"},
+    annot_kws={"color": "black"},
 )
 ax.axhline(y=0, color="k", linewidth=2)
 ax.axhline(y=13, color="k", linewidth=2)
 ax.axvline(x=0, color="k", linewidth=2)
 ax.axvline(x=13, color="k", linewidth=2)
 fig = plt.gcf()
-fig.set_size_inches(8, 8)
+fig.set_size_inches(5, 5)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Retained")
-plt.savefig(f"JSD_{args.name}_{args.topk}_Heatmap_Retained.png", bbox_inches="tight")
+plt.savefig(
+    f"JSD_{args.name}_{args.topk}_Heatmap_Retained.png", bbox_inches="tight", dpi=500
+)
 print(
     "Retained Max, Min:\n",
     np.max(np.mean(retained_hmap, axis=0)),
@@ -191,16 +193,18 @@ ax = sns.heatmap(
     square=True,
     cbar=False,
     fmt=".2f",
-    annot_kws={"fontweight": "black", "color": "black"},
+    annot_kws={"color": "black"},
 )
 ax.axhline(y=0, color="k", linewidth=2)
 ax.axhline(y=13, color="k", linewidth=2)
 ax.axvline(x=0, color="k", linewidth=2)
 ax.axvline(x=13, color="k", linewidth=2)
 fig = plt.gcf()
-fig.set_size_inches(8, 8)
+fig.set_size_inches(5, 5)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Removed")
-plt.savefig(f"JSD_{args.name}_{args.topk}_Heatmap_Removed.png", bbox_inches="tight")
+plt.savefig(
+    f"JSD_{args.name}_{args.topk}_Heatmap_Removed.png", bbox_inches="tight", dpi=500
+)
 print(
     "Removed Max, Min:\n",
     np.max(np.mean(removed_hmap, axis=0)),
