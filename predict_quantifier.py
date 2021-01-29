@@ -193,18 +193,15 @@ quantifier_start_logits, quantifier_end_logits = quantifier_predictions.predicti
 
 
 quantifier_confidence = np.mean(
-    np.max(softmax(quantifier_start_logits, axis=-1), axis=-1)
-    + np.max(softmax(quantifier_end_logits, axis=-1), axis=-1)
+    np.max(softmax(quantifier_start_logits+quantifier_end_logits), axis=-1), axis=-1)
 )
 
 quantifier_numerical_confidence = np.mean(
-    np.max(softmax(quantifier_numerical_start_logits, axis=-1), axis=-1)
-    + np.max(softmax(quantifier_numerical_end_logits, axis=-1), axis=-1)
+    np.max(softmax(quantifier_numerical_start_logits+quantifier_numerical_end_logits, axis=-1), axis=-1)
 )
 
 nonquantifier_confidence = np.mean(
-    np.max(softmax(nonquantifier_start_logits, axis=-1), axis=-1)
-    + np.max(softmax(nonquantifier_end_logits, axis=-1), axis=-1)
+    np.max(softmax(nonquantifier_start_logits+nonquantifier_end_logits, axis=-1), axis=-1)
 )
 
 print(f"Quantifier Confidence: {quantifier_confidence}")
