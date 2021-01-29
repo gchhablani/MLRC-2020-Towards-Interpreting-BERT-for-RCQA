@@ -172,5 +172,5 @@ for num_percentage in num_percentages:
     for key in num_percentage.keys():
         num_percentage[key] *= 100 / len(word_importances)
 
-with open(f"POS {args.name} {args.topk} Quantifier Table.txt", "w") as f:
+with open(f"{args.name} {args.topk} Quantifier Table.txt", "w") as f:
     pd.DataFrame(num_percentages).to_latex(f, index=False)
