@@ -34,7 +34,17 @@ from src.utils.misc import seed
 
 
 class MyEncoder(json.JSONEncoder):
+    """Class to convert NumPy stuff to JSON-writeable."""
+
     def default(self, obj):
+        """Convert NumPy stuff to regular Python stuff.
+
+        Args:
+            obj (object): Object to be converted.
+
+        Returns:
+            object: Converted object.
+        """
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):

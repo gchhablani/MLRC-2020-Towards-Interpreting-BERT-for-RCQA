@@ -1,19 +1,19 @@
 """Script to generate tSNE representation to qualitatively analyse words.
    Usage:
-    $python generate_tSNE.py 
+    $python generate_tSNE.py
 """
 import argparse
 
-import numpy as np
+
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-from omegaconf import OmegaConf
-from transformers import BertTokenizer, BertForQuestionAnswering
-import torch
 import numpy as np
+from omegaconf import OmegaConf
 import pandas as pd
 from sklearn.manifold import TSNE
+import torch
+from transformers import BertTokenizer, BertForQuestionAnswering
+
 
 parser = argparse.ArgumentParser(
     prog="generate_tsne.py",
@@ -103,9 +103,9 @@ tokens = tokens[:actual_end]
 layer_number = [1, 5, 10, 12]
 
 representation_list = []
-for i in range(len(layer_number)):
+for layer in layer_number:
     representation_list.append(
-        sequence_outputs[layer_number[i]].squeeze().detach().numpy()[:actual_end]
+        sequence_outputs[layer].squeeze().detach().numpy()[:actual_end]
     )
 
 
