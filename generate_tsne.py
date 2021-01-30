@@ -1,6 +1,6 @@
-"""Script to implement tSNE to qualitatively analyse words.
+"""Script to generate tSNE representation to qualitatively analyse words.
    Usage:
-    $python implement_tSNE.py 
+    $python generate_tSNE.py 
 """
 import argparse
 

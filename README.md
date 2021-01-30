@@ -2,15 +2,272 @@
 
 This is our repository for the implementation of the paper [Towards Interpreting BERT for Reading Comprehension Based QA](https://openreview.net/forum?id=bpDFfs40geg&referrer=%5BML%20Reproducibility%20Challenge%202020%5D(%2Fgroup%3Fid%3DML_Reproducibility_Challenge%2F2020)) as a part of the [ML Reproducibility Challenge 2020](https://openreview.net/group?id=ML_Reproducibility_Challenge/2020).
 
+## Paper Summary
+
+The paper talks about using Integrated Gradients (IG) to identify layer roles for BERT in Reading Comprehension QA tasks - SQuAD v1.1 and DuoRC SelfRC. They use the IG to create a probability distribution over the sequence for each example. Then they create Jensen-Shannon Divergence heatmaps across layers for 1000 samples keeping the top-2 tokens retained and top-2 tokens removed to see if layers focus on different words. Then, they use the token-wise imporances to create word-wise importances and use top-5 words to see what is the % of **predicted** answers, context words (within window size of 5 around answer) and query words in the passage in each layer for all dev samples. They observe that layers focus more on answer and contextual words and less on query words as the layers progress. This means that later layers focus on answer and words around the answer span, while initial layers focus on the query words and possible answers. Then, they plot an example based on the word-importances for layers and t-SNE representation for each layer's representation. Finally, they check the quantifier questions ('how much', 'how many') and observe that the ratio of numerical words in top-5 words increases as the layers progress. This is surprising as the confidence of BERT is still very high on such questions and the Exact Match scores are also high.
+
 ## Usage
 
+### Install Requirements
+
+To install requirements:
+
+```sh
+pip install -r requirements.txt
+```
+
+### Setting up the package
+
+We create a package called 'src'. If you're running any script outside src, then you may not need to use this, but in case your requirements are not met directly, you can install the package using:
+
+```sh
+python setup.py install
+```
+
+### Fine-tuning BERT
+
+The fine-tuning requires two configuration file paths, one for the dataset, and one for the trainer.
+
+The default dataset config for SQuAD is as follows:
+
+```yaml
+dataset_name: squad #The dataset to be loaded from src.datasets
+model_checkpoint: bert-base-uncased #Pretrained Tokenizer Name
+max_length: 384 #Max Sequence Length
+doc_stride: 128 #Document Stride
+```
+
+For DuoRC, we need local file paths as it is not available on HuggingFace datasets:
+
+```yaml
+dataset_name: duorc_modified #The dataset to be loaded from src.datasets
+model_checkpoint: bert-base-uncased #Pretrained Tokenizer Name
+max_length: 384 #Max Sequence Length
+doc_stride: 128 #Document Stride
+squad_v2: false #Whether to include no answer examples
+data_files:
+  train: ./data/duorc/dataset/SelfRC_train.json # The path to train dataset JSON.
+  validation: ./data/duorc/dataset/SelfRC_dev.json # The path to dev dataset JSON.
+```
+
+An example of train config:
+
+```yaml
+#Args
+model:
+  pretrained_model_name: bert-base-uncased
+args:
+  output_dir: "/content/drive/My Drive/MLR/v1_style/squad/ckpts/squad-bert-base-uncased" ## Checkpoint Directory
+  logging_dir: "/content/drive/My Drive/MLR/v1_style/squad/runs/" ## Log Directory
+  evaluation_strategy: epoch
+  per_device_train_batch_size: 6
+  per_device_eval_batch_size: 8
+  weight_decay: 0.01
+  learning_rate: 3e-5
+  num_train_epochs: 2
+  adam_epsilon: 1e-6
+  lr_scheduler_type: polynomial
+  warmup_steps: 2950 # 10% of total train steps - (88524*2)/6 * 0.1
+  logging_first_step: true
+  logging_steps: 1000
+  save_steps: 2000
+  seed: 2020
+  dataloader_num_workers: 4
+trainer:
+  pretrained_tokenizer_name: bert-base-uncased
+  save_model_name: "/content/drive/My Drive/MLR/v1_style/squad/model/squad-bert-base-uncased-model" ## Path for final model.
+misc:
+  squad_v2: false
+  raw_predictions_file: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad_raw" ## Store the binary predictions
+  metric_file: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad.json" ## Store the evaluation result
+  final_predictions_file: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad_final_predictions.json" ## Store the final processed predictions per example.
+```
+
+If you do not wish to change the file paths, you can fine-tune the BertForQuestionAnswering model using the following commands:
+
+1. SQuAD v1.1
+
+```bash
+python train.py --train ./configs/train/squad/default.yaml --dataset ./configs/datasets/squad/default.yaml
+```
+
+1. DuoRC SelfRC
+
+```bash
+python train.py --train ./configs/train/duorc_modified/default.yaml --dataset ./configs/datasets/duorc_modified/default.yaml
+```
+
+Running this command saves the processed predictions as a JSON file at the path specified in the trainer configuration, along with the checkpoints, final model, metrics, and logs at their respective paths.
+
+In case you have a trained model at `save_model_name` from the train configuration, you can use `--only_predict` to get raw predictions, and processed predictions.
+
+In case you already have the raw predictions file and just want to calculate the metrics, use `--load_predictions` with the above commands.
+
+### Integrated Gradients
+
+Based on the predictions stored in JSON file during the training, you can calculate Integrated Gradients on a random sample and store token-wise and word-wise importances in a binary.
+
+For this, a configuration file is needed. An example configuration file looks like:
+
+```yaml
+# Config for Integrated Gradients for SQuAD
+model_checkpoint: "/content/drive/My Drive/MLR/v1_style/squad/model/squad-bert-base-uncased-model" ##Model Checkpoint
+device: cuda # Device to be used for Integrated Gradients
+n_steps: 25 # Number of steps to use for Numerical Approximation
+method: "riemann_right" # The method to be used in Captum's Integrated Gradients
+internal_batch_size: 4 # The batch size to be used internally
+n_samples: 1000 # The number of samples to do IG for
+store_dir: "/content/drive/My Drive/MLR/v1_style/squad/IGv2/" # The path where the resulting binaries are stored
+predictions_path: "/content/drive/My Drive/MLR/v1_style/squad/preds/squad_final_predictions.json" # The path where the predictions were stored during training.
+```
+
+The terminal command to run Integrated Gradients is:
+
+```bash
+python run_integrated_gradients.py --config ./configs/integrated_gradients/squad.yaml
+```
+
+This will store the samples (`samples`), token-wise importances(`token_importances`), and word-wise importances(`word_importances`) in binary files at the `store_dir`.
+
+### Quantifier Integrated Gradients
+
+To run Integrated Gradients for Quantifier Questions, the command is same as that for Integrated Gradients. We ignore `n_samples` as we take Integrated Gradients for all the examples which have Quantifier Questions.
+
+Running the same command stores the samples (`samples`), token-wise importances(`token_importances`), and word-wise importances(`word_importances`) in binary files at the `store_dir`/quantifier/.
+
+### Jensen-Shannon Divergence Heatmaps
+
+To generate JSD Heatmaps, use the following command:
+
+```bash
+python generate_heatmaps.py --path <path to token importance scores> --name <name used to save> --topk <K important scores to be retained/removed>
+```
+
+This generates heatmaps (`JSD_<name>_<topk>_Heatmap_Retained.png`,`JSD_<name>_<topk>_Heatmap_Removed.png`) and binary files (`Retained Map <name> <topk>`,`Removed Map <name> <topk>`) containing the layer-wise JSD for all samples. In case you have the binary files, you can use the `--load_binary` option to avoid recalculation of JSD.
+### Semantic and POS Statistics
+
+To generate Semantic Statistics, use the following command:
+
+```bash
+python generate_tables.py --path <path to word importance scores> --name <name used to save> --topk <K important scores to be checked> --window <window size to be used to find contextual words>
+```
+
+The generates the tables for Semantic Statistics and Part-of-Speech Statistics as `A_Q_C <name> <topk> <window> Table.txt` and `POS <name> <topk> <window> Table.txt`, respectively, in $\LaTeX$ format.
+
+### Visualization
+
+To generate visualization for top-K words for a few layers, use the following command:
+
+```bash
+python generate_viz --path <path to word imporances> --name <name used to save> --topk <K important words to be considered>
+```
+
+This stores a HTML file with the name, and a random seed used to sample the example as `<name>_<seed>_<topk>_viz.html`.
+
+### t-SNE Representation
+
+To generate t-SNE representations for a few layers for SQuAD, use the following command:
+
+```bash
+python generate_tsne.py --train ./configs/train/squad/default.yaml
+```
+
+This uses the predictions stored during fine-tuning to determine the word categories, and get layer-wise representations for the best feature.
+
+Using this command with store 4 t-SNE plots in `.jpg` format.
+### Quantifier Predictions
+
+To calculate EM and confidence on Quantifier, Non-quantifier and Quantifier Questions with more than one numerical word in the passage, use the following command:
+
+```sh
+python predict_quantifier.py --train ./configs/train/quad/default.yaml --dataset ./configs/datasets/squad/default.yaml
+```
+
+This takes the same dataset and train configurations as the training file, and uses the dataset, as well as the predictions stored in the JSON file.
+
+The confidence scores are printed on the console, while the evaluation metric scores are stored in JSON files.
+
+### Quantifier Numerical Statistics
+
+To generate tables for numerical words in top-k words in total numerical words in passage for Quantifier Questions, use the following command:
+
+```sh
+python generate_quantifier_tables.py --path <path to word importances> --name <name used to save> --topk <K important scores to be checked>
+```
+
+This command stores the results in a file name `<name> <topk> Quantifier Table.txt` in the $\LaTeX$ format.
+
+### Adding a New Dataset
+
+If you wish to add a new dataset, you can simply extend the DuoRC dataset class or make a base class from it, and write your own `convert_to_squad_format` method for your dataset, and corresponding configuration.
+
+Additionally, use our `configmapper` object to map the custom dataset to our registry, add the dataset to `__init__.py` in src/datasets, and finally import it in train.py.
+
+Once this is done, you should be able to use `train.py` easily on your dataset without much modification.
 
 ## Directory Structure
 
+```bash
+root
+├── configs
+|   ├── datasets
+|   |   ├── duorc
+|   |   |   ├── default.yaml
+|   |   |   └── squad_v2.yaml
+|   |   ├── duorc_modified
+|   |   |   └── default.yaml
+|   |   └── squad
+|   |       ├── default.yaml
+|   |       └── squad_v2.yaml
+|   ├── integrated_gradients
+|   |   ├── duorc.yaml
+|   |   └── squad.yaml
+|   └── train
+|       ├── duorc
+|       |   ├── default.yaml
+|       |   └── squad_v2.yaml
+|       ├── duorc_modified
+|       |   └── default.yaml
+|       └── squad
+|           ├── default.yaml
+|           └── squad_v2.yaml
+├── data
+|   └── duorc
+|       └── dataset
+|           ├── SelfRC_dev.json
+|           └── SelfRC_train.json
+├── src
+|   ├── datasets
+|   |   ├── __init__.py
+|   |   ├── duorc_modified.py
+|   |   ├── duorc.py
+|   |   └── squad.py
+|   ├── utils
+|   |   ├── __init__.py
+|   |   ├── integrated_gradients.py
+|   |   ├── mapper.py
+|   |   ├── misc.py
+|   |   ├── postprocess.py
+|   |   └── viz.py
+|   └── __init__.py
+├── generate_heatmaps.py
+├── generate_quantifier_tables.py
+├── generate_tables.py
+├── generate_tsne.py
+├── generate_viz.py
+├── predict_quantifier.py
+├── README.md
+├── requirements.txt
+├── run_integrated_gradients.py
+├── run_quantifier_ig.py
+├── setup.py
+└── train.py
+```
 
-## Paper Summary
 
-The paper talks about using Integrated Gradients (IG) to identify layer roles for BERT in Reading Comprehension QA tasks - SQuAD v1.1 and DuoRC SelfRC. They use the IG to create a probability distribution over the sequence for each example. Then they create Jensen-Shannon Divergence heatmaps across layers for 1000 samples keeping the top-2 tokens retained and top-2 tokens removed to see if layers focus on different words. Then, they use the token-wise imporances to create word-wise importances and use top-5 words to see what is the % of **predicted** answers, context words (within window size of 5 around answer) and query words in the passage in each layer. They observe that layers focus more on answer and contextual words and less on query words as the layers progress. This means that later layers focus on answer and words around the answer span, while initial layers focus on the query words and possible answers. Then, they plot an example based on the word-importances for layers and t-SNE representation for each layer's representation. Finally, they check the quantifier questions ('how much', 'how many') and observe that the ratio of numerical words in top-5 words increases as the layers progress. This is surprising as the confidence of BERT is still very high on such questions and the Exact Match scores are also high. A slightly more elaborate summary of the paper can be found here: https://gchhablani.github.io/papers/interpretBERTRC.
+## Pre-trained Models and Results
+
+We will be updating the pre-trained models and results post-review as the pre-trained checkpoints are huge in size and stored on Google Drive.
 ## Implementation
 
 The paper uses original BERT script to train and evaluate the model on both the datasets, while we use custom scripts based on HuggingFace [datasets](https://huggingface.co/docs/datasets/) and [transformers](https://huggingface.co/transformers/) libraries.
@@ -52,7 +309,6 @@ Example - 'Train S2' means that the dataset is Train and the format chosen for p
 | Multiple Answers                    | Keep First | Keep First | Keep All | Keep All |
 | Answer exists but not found in plot | Drop       | Keep       | Drop     | Keep     |
 
-The model checkpoints/logs can be found here : <>
 
 ### DuoRC Modified - Variant 2
 Here, we keep the no answers as empty in all training and validation sets, regardless of SQuAD v1.1 or SQuAD v2 style. We process the examples into SQuAD v1.1 format using the following logic. We have to do so in order to bring the F1 scores of the model closer to those reported in the paper, as well as the authors said that they didn't drop any examples in the validation set while prediction. Our analysis/results are based on this form of processing.
@@ -64,44 +320,22 @@ Here, we keep the no answers as empty in all training and validation sets, regar
 | Multiple Answers                    | Keep First | Keep First | Keep All | Keep All |
 | Answer exists but not found in plot | Drop       | Keep       | Keep     | Keep     |
 
-## Analysis and Results
-
 
 ### Integrated Gradients
 
-The authors use a custom implementation of Integrated Gradients, with `m_steps = 50` and over all the examples in SQuAD and DuoRC. Due to differences in our initial understanding of the paper, we have implemented Integrated Gradients (IG) using the PyTorch-based library - [Captum](https://captum.ai/docs/extension/integrated_gradients).
+The authors use a custom implementation of Integrated Gradients, with `m_steps = 50` and over all the examples in SQuAD and DuoRC. We have implemented Integrated Gradients (IG) using the PyTorch-based library - [Captum](https://captum.ai/docs/extension/integrated_gradients).
 
-The authors calculate Integrated Gradients on each layer's input states and use reimann-right numerical approximation. They calculation attributions of the layers on maximum of softmax of start and end logits separately with m_steps = 50. Due to computational restrictions, we had to reduce the number of samples and steps we could calculate Integrated Gradients on.
+We calculate Integrated Gradients on each layer's input states and use reimann-right numerical approximation. We calculation attributions of the layers on maximum of softmax of start and end logits separately with m_steps = 25. Due to computational restrictions, we had to reduce the number of samples and steps we could calculate Integrated Gradients on.
 
-Additionally, they consider the best feature for each example predicted by the model only for finding out the importance values.
+Additionally, we consider the best feature for each example predicted by the model only for finding out the importance values.We norm the token attributions generated and normalize it to get a probability distribution. We use this probability distribution to calculate word-wise importances by adding importances for tokens of each word together, and re-normalizing the scores.
 
-**Differences w Authors' Integrated Gradients**
-| Authors' Implementation                                               | Our Implementation                                           |
-| --------------------------------------------------------------------- | ------------------------------------------------------------ |
-| m_steps = 50                                                          | m_steps = 25                                                 |
-| n_samples = size of the validation dataset                            | n_samples = 1000                                             |
-| one feature per example (best predicted)                              | can have multiple features per example.                      |
-| target is max(softmax(start_logits)) for start and similarly for end. | target is max(start_logits) for start and similarly for end. |
+Note: In other IG variants, targets can be either: 
 
-They norm the token attributions generated and normalize it to get a probability distribution. They use this probability distribution to calculate word-wise importances by adding importances for tokens of each word together, and re-normalizing the scores.
-
-<span style="color:red;">Since we take multiple features per sample, we can't directly use the "predicted answer" as the answer word for each feature. Hence, we predict again on the chosen samples and take feature-wise (instead of example-wise) best processed predictions for each feature as the answer.</span>
-
-<span style="color:red;">Due to differences in the method of IG, our word-categories for word importances are different, as well as token importances which can bring some differences to the statistics calculated from the paper.</span>
-
-We plan to make these changes to our repository soon in order to bring the code as close to authors' implementation of the approach.
-
-Note: In other variants, targets can be either: 
-
-- argmax(softmax(logits)) for start and end
+- argmax(softmax(logits)) for start and end.
   
-- argmax(logits) for start and end
+- best start and end logits based on max(softmax(start_logits)+softmax(end_logits)).
   
-- best start and end logits based on max(start_logits+end_logits)  
-  
-- best start and end logits based on max(softmax(start_logits)+softmax(end_logits))
-  
-- ground truth start and end
+- ground truth start and end.
 
 ### Jensen Shannon Divergence
 The authors calculate Jensen-Shannon Divergence using the [dit](https://dit.readthedocs.io/en/latest/measures/divergences/jensen_shannon_divergence.html) library. For 1000 examples, they retain top-2 token importances and zero out the rest and plot heatmap for inter-layer divergence values.
@@ -109,11 +343,9 @@ They remove top-2 token importances and keep the rest and again plot the heatmap
 
 We repeated this with 1000 features, instead of examples, and observe similar heatmaps.
 
-
-
 The essence of this analysis is to look at the gap between max and min values in the heatmap, and which pair of layers have similar top-k importances, and which pair of layers have different top-k importances.
+### QA Functionality 
 
-### QA Functionality
 
 
 ### Qualitative Examples

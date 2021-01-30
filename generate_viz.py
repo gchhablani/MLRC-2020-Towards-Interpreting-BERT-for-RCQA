@@ -4,9 +4,7 @@
    importances of the top-5 words in a few layers from it.
 
    Usage:
-    $python generate_viz.py --path ~/Downloads/ --name SQuAD
-
-    The files should be named - `word_importances`, and `word_importances_prediction_based`
+    $python generate_viz.py --path ~/Downloads/word_importances --name SQuAD
 """
 import os
 
