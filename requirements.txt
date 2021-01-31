@@ -1,7 +1,7 @@
 omegaconf
 datasets==1.2.1
-transformers==4.3.0.dev0
-pyarrow==2.0.0
+transformers==4.2.2
+pyarrow==3.0.0
 captum==0.3.0
 ipython
 dit
