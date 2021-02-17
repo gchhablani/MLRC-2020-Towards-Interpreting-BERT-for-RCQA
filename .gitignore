@@ -130,3 +130,6 @@ dmypy.json
 .vscode
 __pycache__
 .ipynb_checkpoints
+*Old*Results/Viz/*
+Retained*Map*
+Removed*Map*
