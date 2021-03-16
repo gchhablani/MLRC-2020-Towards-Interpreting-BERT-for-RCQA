@@ -35,7 +35,8 @@ train_config = OmegaConf.load(args.train)
 seed = np.random.randint(1, 10000000)
 np.random.seed(seed)
 predictions = pd.read_json(train_config.misc.final_predictions_file)
-sample_idx = np.random.randint(0, len(predictions))
+# sample_idx = np.random.randint(0, len(predictions))
+sample_idx = 10
 
 sample = predictions.iloc[sample_idx]
 
@@ -243,4 +244,4 @@ for j in range(len(representation_list)):
         ),
         fontsize=18,
     )
-    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.jpg", dpi=400)
+    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.pdf", dpi=200)

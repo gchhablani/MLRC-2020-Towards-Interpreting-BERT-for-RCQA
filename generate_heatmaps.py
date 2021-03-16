@@ -27,6 +27,7 @@ parser.add_argument(
     type=str,
     action="store",
     help="The path for token importances binary file.",
+    required=False,
 )
 parser.add_argument(
     "--name",
@@ -172,7 +173,7 @@ fig = plt.gcf()
 fig.set_size_inches(5, 5)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Retained")
 plt.savefig(
-    f"JSD_{args.name}_{args.topk}_Heatmap_Retained.png", bbox_inches="tight", dpi=500
+    f"JSD_{args.name}_{args.topk}_Heatmap_Retained.pdf", bbox_inches="tight", dpi=200
 )
 print(
     "Retained Max, Min:\n",
@@ -203,7 +204,7 @@ fig = plt.gcf()
 fig.set_size_inches(5, 5)
 plt.title(f"BERT - {args.name} Integrated Gradients JSD\n Top {args.topk} Removed")
 plt.savefig(
-    f"JSD_{args.name}_{args.topk}_Heatmap_Removed.png", bbox_inches="tight", dpi=500
+    f"JSD_{args.name}_{args.topk}_Heatmap_Removed.pdf", bbox_inches="tight", dpi=200
 )
 print(
     "Removed Max, Min:\n",
