@@ -1,6 +1,6 @@
 omegaconf
 datasets==1.2.1
-transformers==4.2.2
+transformers==4.3.3
 pyarrow==3.0.0
 captum==0.3.0
 ipython
