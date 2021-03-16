@@ -166,7 +166,9 @@ for i in range(len(representation_list)):
 
 X_embeddings = []
 for i in range(len(representation_list)):
-    X = TSNE(n_components=2, init="pca", n_iter=10000).fit_transform(X_list[i])
+    X = TSNE(n_components=2, init="pca", n_iter=10000, random_state=27).fit_transform(
+        X_list[i]
+    )
     X_embeddings.append(X)
 
 for j in range(len(representation_list)):
@@ -239,9 +241,9 @@ for j in range(len(representation_list)):
     )
 
     plt.title(
-        "t-SNE representation for Question {} and Layer {}".format(
+        "t-SNE representation\nfor Question {} and Layer {}".format(
             sample_idx, layer_number[j]
         ),
         fontsize=18,
     )
-    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.pdf", dpi=200)
+    plt.savefig(f"tSNE_{sample_idx}_{layer_number[j]}.pdf", dpi=400)
