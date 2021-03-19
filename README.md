@@ -364,13 +364,13 @@ We repeated this with 1000 features, instead of examples, and observe similar he
 The essence of this analysis is to look at the gap between max and min values in the heatmap, and which pair of layers have similar top-k importances, and which pair of layers have different top-k importances.
 
 
-![JSD SQuAD Heatmap Retained for K=2](images/JSD_SQuAD_2_Heatmap_Retained.png)
+![JSD SQuAD Heatmap Retained for K=2](images/JSD_SQuAD_2_Heatmap_Retained.jpg)
 
-![JSD SQuAD Heatmap Removed for K=2](images/JSD_SQuAD_2_Heatmap_Removed.png)
+![JSD SQuAD Heatmap Removed for K=2](images/JSD_SQuAD_2_Heatmap_Removed.jpg)
 
-![JSD DuoRC Heatmap Retained for K=2](images/JSD_DuoRC_2_Heatmap_Retained.png)
+![JSD DuoRC Heatmap Retained for K=2](images/JSD_DuoRC_2_Heatmap_Retained.jpg)
 
-![JSD DuoRC Heatmap Removed for K=2](images/JSD_DuoRC_2_Heatmap_Removed.png)
+![JSD DuoRC Heatmap Removed for K=2](images/JSD_DuoRC_2_Heatmap_Removed.jpg)
 
 ### QA Functionality
 
@@ -418,13 +418,13 @@ The results are shown below:
 
 Visualization of top-5 words in SQuAD and DuoRC:
 
-**Example 1 for SQuAD** : [SQuAD Example 1](/html/SQuAD_111386_5_viz.html)
+**Example 1 for SQuAD** : ![SQuAD Example 1](images/SQuAD%20Viz.jpg)
 
-**Example 2 for SQuAD** : [SQuAD Example 2](/html/SQuAD_766771_5_viz.html)
+**Example 2 for SQuAD** : ![SQuAD Example 2](images/SQuAD%20Viz%202.jpg)
 
-**Example 1 for DuoRC** : [DuoRC Example 1](/html/DuoRC_79828_5_viz.html)
+**Example 1 for DuoRC** : ![DuoRC Example 1](images/DuoRC%20Viz.jpg)
 
-**Example 2 for DuoRC** : [DuoRC Example 2](/html/DuoRC_998016_5_viz.html)
+**Example 2 for DuoRC** : ![DuoRC Example 2](images/DuoRC%20Viz%202.jpg)
 
 ### Quantifier Questions
 
