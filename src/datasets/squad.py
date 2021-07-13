@@ -1,6 +1,6 @@
 """Class to load and process SQuAD v1.1 Dataset.
 
-This module uses PyTorch's Dataset Library to create SQuAD dataset.
+This module uses HuggingFace's Dataset Library to create SQuAD dataset.
 Currently, we only use HuggingFace's BertTokenizer directly for tokenization,
 as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.

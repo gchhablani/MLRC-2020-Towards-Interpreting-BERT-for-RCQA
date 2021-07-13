@@ -1,6 +1,6 @@
 """Class to load and process DuoRC SelfRCDataset.
 
-This module uses PyTorch's Dataset Library to create SelfRC dataset in SQuAD style.
+This module uses HuggingFace's Dataset Library to create SelfRC dataset in SQuAD style.
 Currently, we only use HuggingFace's BertTokenizer directly for tokenization,
 as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.

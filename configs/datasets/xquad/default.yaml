@@ -1,0 +1,4 @@
+dataset_name: xquad #The dataset to be loaded from datasets
+model_checkpoint: bert-base-multilingual-uncased #Pretrained Tokenizer Name
+max_length: 384 #Max Sequence Length
+doc_stride: 128 #Document Stride

@@ -1,34 +1,27 @@
-"""Class to load and process DuoRC SelfRCDataset.
+"""Class to load and process XQuAD Dataset.
 
-This module uses PyTorch's Dataset Library to create SelfRC dataset in SQuAD style.
+This module uses HuggingFace's Dataset Library to create XQuAD dataset.
 Currently, we only use HuggingFace's BertTokenizer directly for tokenization,
 as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.
 
-When creating your own datasets using this format, the trainer script expects
+When creating your own datasets using this format, the trainer expects
 a DatasetDict to be returned from the customedataset class.
 
 References:
 https://github.com/huggingface/notebooks/blob/master/examples/question_answering.ipynb
-
-Note: The original bert SQuAD code uses max_query_length and a max_sequence_length.
-    Here, we only use max_sequence_length and only truncate the context, not the question.
 """
-import json
 
-from datasets import Dataset, DatasetDict
-import pandas as pd
-from tqdm.auto import tqdm
+from datasets import load_dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
-
 from src.utils.mapper import configmapper
 
 
-@configmapper.map("datasets", "duorc_modified")
-class DuoRCModified:
-    """Implement DuoRC dataset class.
+@configmapper.map("datasets", "xquad")
+class XQuAD:
+    """Implement XQuAD dataset class.
 
-    This dataset class implements DuoRC, including the tokenization
+    This dataset class implements XQuAD, including the tokenization
     and the final output dictionary making the data ready for any
     AutoModelForQuestionAnswering model.
 
@@ -42,11 +35,10 @@ class DuoRCModified:
             The tokenized and processed datasets to be passed to the model.
         tokenized_validation_dataset (datasets.arrow_dataset.Dataset):
             The tokenized and processed validation dataset for prediction.
-
     """
 
     def __init__(self, config):
-        """Initialize the DuoRC class.
+        """Initialize the XQuAD class.
 
         Args:
             config (omegaconf.dictconfig.DictConfig): Configuration for the dataset.
@@ -55,20 +47,8 @@ class DuoRCModified:
             AssertionError: If the tokenizer in config.model_checkpoint does not
                             belong to the PreTrainedTokenizerFast.
         """
-        data_files = config.data_files
-        dataset_dict = {}
-        for key, file_path in data_files.items():
-            if key == "train":
-                dataset_dict[key] = Dataset.from_pandas(
-                    self.convert_to_squad_format(file_path)
-                )
-            else:
-                dataset_dict[key] = Dataset.from_pandas(
-                    self.convert_to_squad_format(file_path, dev=True)
-                )
-
         self.config = config
-        self.datasets = DatasetDict(dataset_dict)
+        self.datasets = load_dataset(config.dataset_name)
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_checkpoint)
         # Tokenizer should be of type PreTrainedTokenizerFast
         # Need it for offset_mapping and overflow_tokens later
@@ -119,9 +99,7 @@ class DuoRCModified:
         pad_on_right = self.tokenizer.padding_side == "right"
         print("### Batch Tokenizing Examples ###")
         tokenized_examples = self.tokenizer(
-            examples[
-                "question" if pad_on_right else "context"
-            ],  ## We don't use max_query_length
+            examples["question" if pad_on_right else "context"],
             examples["context" if pad_on_right else "question"],
             truncation="only_second" if pad_on_right else "only_first",
             max_length=self.config.max_length,
@@ -201,97 +179,6 @@ class DuoRCModified:
 
         return tokenized_examples
 
-    def convert_to_squad_format(self, json_file_path, squad_v2=False, dev=False):
-        """Convert a JSON file for DuoRC to SQuAD format examples.
-
-        Args:
-            json_file_path (str): Path of the JSON file
-            squad_v2 (bool, optional): Whether to include no answer found examples in train set.
-                If set to True, stores them. Defaults to False.
-            dev (bool, optional): Whether the set is dev set.
-                In that case, multiple answer examples are included.
-
-        Returns:
-            pandas.DataFrame: DataFrame containing all examples across all questions and plots.
-        """
-        print(
-            "### Converting Dataset to {} Format ###".format(
-                "SQuAD v1.1" if not squad_v2 else "SQuAD v2.0"
-            )
-        )
-        with open(json_file_path) as f:
-            json_file = json.load(f)
-
-        dataset = []
-        for plot_dict in tqdm(json_file):
-            plot = plot_dict["plot"]
-            title = plot_dict["title"]
-            qas = plot_dict["qa"]
-            idx = plot_dict["id"]
-            for qa in qas:
-                qa_idx = qa["id"]
-                question = qa["question"]
-                no_answer = qa["no_answer"]
-                answers = qa["answers"]
-                answer_index_found = False
-
-                # if (
-                #     not squad_v2 and no_answer
-                # ):
-                #     continue
-
-                start_index = []
-                text = []
-                if not dev:
-                    ## Get the first answer that matches a span
-                    if not no_answer:
-                        for answer in answers:  ## If multiple, get first.
-                            ## Get the first answer found
-                            index = plot.find(
-                                answer
-                            )  ## Original BERT uses start and end, and finds the text
-                            ## based on actual vs original
-                            if index != -1:
-                                start_index = [index]
-                                text = [answer]
-                                answer_index_found = True
-                                break
-
-                ## Store all found answers in Dev
-                else:
-                    if not no_answer:
-                        for answer in answers:
-                            ## Get the all the answers found
-                            index = plot.find(answer)
-                            if index != -1:
-                                start_index.append(index)
-                                text.append(answer)
-                                answer_index_found = True
-
-                if (
-                    not squad_v2
-                    and not answer_index_found
-                    and not no_answer
-                    and not dev
-                ):
-                    continue
-
-                dataset.append(
-                    {
-                        "id": qa_idx,
-                        "plot_id": idx,
-                        "title": title,
-                        "context": plot,
-                        "question": question,
-                        "answers": {
-                            "answer_start": start_index,
-                            "text": text,
-                        },
-                    }
-                )
-
-        return pd.DataFrame(dataset)
-
     def prepare_validation_features(self, examples):
 
         """Generate tokenized validation features from examples.
@@ -356,6 +243,6 @@ class DuoRCModified:
         Returns:
             datasets.dataset_dict.DatasetDict, datasets.arrow_dataset.Dataset :
                 The DatasetDict containing processed train and validation,
-                The Dataset for validation prediction.
+                The Dataset for validation prediction
         """
         return self.tokenized_datasets, self.tokenized_validation_dataset
