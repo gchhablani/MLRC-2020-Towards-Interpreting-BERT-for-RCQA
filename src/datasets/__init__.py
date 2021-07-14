@@ -4,4 +4,5 @@
 from src.datasets.squad import SQuAD
 from src.datasets.duorc import DuoRC
 from src.datasets.duorc_modified import DuoRCModified
-from src.datasets.xquad import xquad
+from src.datasets.xquad import XQuAD
+from src.datasets.mlqa import MLQA

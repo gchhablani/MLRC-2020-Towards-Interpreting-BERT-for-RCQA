@@ -1,6 +1,6 @@
-"""Class to load and process XQuAD Dataset.
+"""Class to load and process MLQA Dataset.
 
-This module uses HuggingFace's Dataset Library to create XQuAD dataset.
+This module uses HuggingFace's Dataset Library to create MLQA dataset.
 Currently, we only use HuggingFace's BertTokenizer directly for tokenization,
 as we only train a Bert model. The tokenizer can be replaced for
 other models, if needed.
@@ -17,11 +17,11 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 from src.utils.mapper import configmapper
 
 
-@configmapper.map("datasets", "xquad")
-class XQuAD:
-    """Implement XQuAD dataset class.
+@configmapper.map("datasets", "mlqa")
+class MLQA:
+    """Implement MLQA dataset class.
 
-    This dataset class implements XQuAD, including the tokenization
+    This dataset class implements MLQA, including the tokenization
     and the final output dictionary making the data ready for any
     AutoModelForQuestionAnswering model.
 
@@ -38,7 +38,7 @@ class XQuAD:
     """
 
     def __init__(self, config):
-        """Initialize the XQuAD class.
+        """Initialize the MLQA class.
 
         Args:
             config (omegaconf.dictconfig.DictConfig): Configuration for the dataset.
@@ -49,6 +49,8 @@ class XQuAD:
         """
         self.config = config
         self.datasets = load_dataset(config.dataset_name, config.subset_name)
+        self.datasets["train"] = self.datasets["test"]
+        del self.datasets["test"]
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_checkpoint)
         # Tokenizer should be of type PreTrainedTokenizerFast
         # Need it for offset_mapping and overflow_tokens later

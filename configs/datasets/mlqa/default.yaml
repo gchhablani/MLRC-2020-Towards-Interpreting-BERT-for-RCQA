@@ -1,5 +1,5 @@
-dataset_name: xquad #The dataset to be loaded from datasets
-subset_name: xquad.hi # The subset of data to load
+dataset_name: mlqa #The dataset to be loaded from datasets
+subset_name: mlqa.hi.hi # The subset of data to load
 model_checkpoint: bert-base-multilingual-uncased #Pretrained Tokenizer Name
 max_length: 384 #Max Sequence Length
 doc_stride: 128 #Document Stride
